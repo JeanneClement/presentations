@@ -78,6 +78,18 @@ addition(2,2)
 \ecol
 \ecols
 
+### Benefits of using GSL's randow draws instead of R's 
+
+- More available distributions : 
+\vspace{0.1cm}
+  * R : gaussian, uniform, binomial, beta, chi-squared, exponential, fisher, gamma, geometric, hypergeometric, negative binomial, poisson, student, weibull.
+  \vspace{0.1cm}
+  * RcppGSL : gaussian, uniform, binomial, beta, chi-squared, exponential, fisher, gamma, geometric, hypergeometric, negative binomial, poisson, student, weibull, multivariate gaussian, multinomial, whishart, dirichlet, cauchy, lognormal, logistic, logarithmic, pareto, laplace, landau... 
+\vspace{0.2cm}
+- GSL's random draws are implemented in C and optimised. 
+\vspace{0.2cm}
+- Easy implementation of wanted distributions using RcppGSL's elementary distributions.
+
 ### Rcpp function using RcppGSL and RcppArmadillo
 \begin{block}{}
 \lstinputlisting[language=C++, firstline=1, lastline=18]{Code/example.cpp}  
@@ -230,7 +242,7 @@ V^*&=(V^{-1} + X'X)^{-1}
 
 ```{r compilation-time, echo = FALSE}
 library(knitr)
-load("~/presentations/presentation_useR/draws.RData")
+load("~/presentation_useR/presentation_useR/draws.RData")
 result <- data.frame(matrix(NA,1,3),row.names=c("Compilation time in secondes"))
 colnames(result) <- c("GSL draws","R draws","R function")
 result[1,] = c(T_gsl_draws, T_R_draws, T_R)
@@ -305,12 +317,12 @@ b' = \frac{1}{2}\sum\limits_{i=1}^n(x_i-\theta)^2 + b.
 #### Compilation times in minuts on four real datasets and one simulated
 
 ```{r time}
-load("~/presentations/presentation_useR/jSDM_boral_sim.RData")
-load("~/presentations/presentation_useR/jSDM_boral_mosquito.RData")
-load("~/presentations/presentation_useR/jSDM_boral_eucalypts.RData")
-load("~/presentations/presentation_useR/jSDM_boral_frogs.RData")
-load("~/presentations/presentation_useR/boral_fungi.RData")
-load("~/presentations/presentation_useR/jSDM_fungi.RData")
+load("~/presentation_useR/presentation_useR/jSDM_boral_sim.RData")
+load("~/presentation_useR/presentation_useR/jSDM_boral_mosquito.RData")
+load("~/presentation_useR/presentation_useR/jSDM_boral_eucalypts.RData")
+load("~/presentation_useR/presentation_useR/jSDM_boral_frogs.RData")
+load("~/presentation_useR/presentation_useR/boral_fungi.RData")
+load("~/presentation_useR/presentation_useR/jSDM_fungi.RData")
 
 
 result <- data.frame(matrix(NA,2,5),row.names=c("boral","jSDM "))
