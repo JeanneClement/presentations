@@ -1,0 +1,555 @@
+---
+classoption: table, dvipsname, compress
+colorlinks: yes
+fontsize: 10pt
+link-citations: yes
+linkcolor: Black
+urlcolor: Maroon
+bibliography:  ref_GAMBAS.bib
+biblio-style: "apalike"
+output: 
+  beamer_presentation:
+    # keep_tex: true
+    # toc: true
+    includes:
+      in_header: header.tex
+      before_body: doc_prefix.tex
+      after_body: doc_suffix.tex
+    slide_level: 3
+---
+
+```{r options, include=FALSE}
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo=TRUE, cache=TRUE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               fig.show="hide", size="small",
+               fig.align="center",
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+# Introduction
+
+## State of the art
+
+### Available softwares for fitting JSDMs
+
+**Community of existing R/Python packages**:
+
+- `boral` [@Hui2016]
+- `Hmsc` [@Ovaskainen2017]
+- `gjam` [@Clark2017]
+- `BayesComm` [@Golding2015]
+- `gllvm` [@Niku2019]
+- `s-jSDM` [@Pichler2021]
+- \ldots
+
+\vspace{0.25cm}
+
+**Probabilistic programming software**:
+
+- `greta` [@Golding2019]
+- `PyMC3` [@pymc3]
+- `JAGS` [@Stan2021]
+- `Stan` [@Plummer2003]
+
+### Limitations
+
+- Computational speed (boral, HMSC)
+- Model specifications (BayesComm, s-jSDM)
+	- eg. site random effects, functional traits, phylogenetic data
+- Heterogenous model performance (HMSC, boral, gjam)  [@Norberg2019; @Wilkinson2019]
+
+\centering \includegraphics[width=8cm]{figs/Norberg2019-EM.png}
+
+## Obectives
+
+### Obectives of the jSDM R package
+
+- Make our hands dirty to understand better the JSDM functioning
+- Optimized code for fast MCMC computations
+- User friendly: package, functions, articles, vignettes
+- **A base for testing a large variety of models**:
+  - occurrence and count data (Bernoulli/Binomial -- Poisson/Neg-Binomial)
+	- probit/logit link function for occurrences
+	- functional traits and phylogenetic data
+	- species and site random/fixed effects
+	- presence-only data
+	
+\vspace{0.25cm}
+
+- Companion for the `hSDM` R package, hierarchical **one**-species distribution models (mixed models, imperfect detection, spatial autocorrelation) <https://ecology.ghislainv.fr/hSDM/>
+
+<!-- ================================================================= -->
+<!-- PART 2: jSDM R package -->
+<!-- ================================================================= -->
+
+# The `jSDM` R package
+
+## Joint Species Distribution Models
+
+### JSDM utility
+
+\bcols
+\bcol{0.6\textwidth}
+
+- Fit species distribution models
+- Accounting for species co-occurrences
+
+\includegraphics[width=\textwidth]{figs/allfrogs1.jpg}
+
+\vspace{0.5cm}
+
+- Can be used to explain/predict species range and produce species range map
+
+\includegraphics[width=\textwidth]{figs/SDM.jpg}
+
+\ecol
+\bcol{0.4\textwidth}
+
+\includegraphics[width=\textwidth]{figs/Litoria_ewingii.jpg}     
+
+\ecol
+\ecols
+
+### Data to fit JSDM
+
+\bcols
+\bcol{0.65\textwidth}
+\includegraphics[width=0.9\textwidth]{figs/datasets2.pdf}
+\ecol
+\bcol{0.4\textwidth}
+
+- $Y$: occurrences of species recorded in a set of spatial sampling units. 
+\vspace{5mm}
+- $X$: environmental covariates measured over the $I$ sampling units. 
+\vspace{5mm}
+- $T$: traits measured for the $J$ species in the $Y$ matrix.
+
+\ecol
+\ecols
+
+
+## Model specification
+
+### Statistical model
+\vspace{-0.1cm}
+According to the article @Warton2015, we consider that:
+\vspace{-0.1cm}
+
+- $\red{y_{ij}}  \sim \mathcal{B}inomial(\red{n_i} , \blue{\theta_{ij}})$, for presence-absence data,
+\vspace{0.5mm}
+- $\red{y_{ij}} \sim\mathcal{P}oisson(\blue{\theta_{ij}})$, for abundance data, such that: 
+\vspace{-0.7mm}
+   $$g(\blue{\theta_{ij}})= \blue{\alpha_i} + \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j}$$
+\pause
+\vspace{-0.5cm}
+\begin{columns}
+\hspace{-0.65cm}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+\item $g$: a link function (probit, logit or log).
+\item $\red{n_i}$: number of visits to site $i$.
+\item $\blue{\theta_{ij}}$: occurrence probability or mean abundance of species $j$ at site $i$.
+\item $\blue{W_i}$: $q$ latent variables (or "unmeasured predictors") for site $i$, such that $\blue{W_i} \sim \mathcal{N}_{q}(0,I_{q})$, for $i \in \llbracket 1,I \rrbracket$. 
+\item $\blue{\alpha_i}$: site effect for the site $i$,\\ such that for $i \in \llbracket 1,I \rrbracket$:
+  \begin{itemize}
+    \item if random effect: $\blue{\alpha_i} \sim \mathcal{N}(0,\blue{V_{\alpha}})$ and $\blue{V_{\alpha}} \sim \mathcal {IG}(\text{shape}, \text{rate})$,
+    \item if fixed effect: $\blue{\alpha_i} \sim \mathcal{N}(0, V_{\alpha})$ with the identifiability constraint $\alpha_1=0$. 
+    \end{itemize}
+\end{itemize}
+\end{column}
+\hspace{-1cm}
+\pause
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+\item $\red{X_i}$: $p$ environmental variables on site $i$ and the intercept.  
+\item $\blue{\beta_j}$: species effect for the species $j$,
+\begin{itemize}
+    \item if $n$ species traits are considered:
+    $\blue{\beta_j} \sim \mathcal{N}_{p+1}(\blue{\mu_{\beta_j}},V_{\beta})$,
+    with $\blue{\mu_{\beta_{jk}}}  = \sum_{r=0}^{n}  \blue{t_{jr}}.\blue{\gamma_{rk}}$, for $k \in \llbracket 0,p \rrbracket$, 
+    \item else:  $\blue{\beta_j} \sim \mathcal{N}_{p+1}(\mu_{\beta},V_{\beta})$, for $j \in  \llbracket 1,J \rrbracket$.
+\end{itemize}
+\item $\blue{\lambda_j}$: factor loadings for species $j$ such that for $j \in  \llbracket 1,J \rrbracket$ and $l \in \llbracket 1,q \rrbracket$ : $$ \blue{\lambda_{jl}} \sim \begin{cases}
+\mathcal{N}(0,V_{\lambda_l})\text{ if } l < j, \\
+\mathcal{N}(0,V_{\lambda_l}) \text{ left truncated by } 0 \text{ if } l=j,\\
+P \text{ such that } \mathbb{P}(\blue{\lambda_{jl}}=0)=1  \text{ if } l>j.
+\end{cases}$$
+\end{itemize}
+\end{column}
+\end{columns}
+
+### Statistical model
+
+The previous latent variable model (**LVM**) is equivalent to a particular case of the generalized linear multivariate model (**GLMM**): 
+     $$g(\blue{\theta_{ij}}) = \blue{\alpha_i} + \red{X_i} \blue{\beta_j} + \blue{u_{ij}}$$
+    such that $\blue{u_i} \sim \mathcal{N}_J(0_{\mathbb{R}^J}, \blue{\Sigma})$, by assuming $\blue{u_{ij}}=\blue{W_i\lambda_j}$,
+    and the variance-covariance matrix $\blue{\Sigma_{jg}} = \blue{\lambda_j^T \lambda_{g}},$ for $j,g \in  \llbracket 1,J \rrbracket$. 
+
+The **full species residual correlation matrix** is then defined as follows:
+  $$\blue{R_{jg}}:=\frac{\blue{\Sigma_{jg}}}{\sqrt{\blue{\Sigma _{jj}\Sigma _{gg}}}}.$$
+
+### Complexity of the model
+\vspace{0.1cm}
+\bcols
+\bcol{0.6\textwidth}
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{figs/DAG-jSDM-rand.png}  
+\end{center}
+**A graphical summary of the Bayesian hierarchical model considered by `jSDM`**   
+
+In this directed acyclic graph (DAG):
+
+- orange boxes: data
+- blue circles: parameters to be estimated
+- arrows: functional relationships described using statistical distributions. 
+
+\ecol
+
+\bcol{0.45\textwidth}
+- Multi-dimensionality: parameters $\blue{\alpha_i}$ for sites and $\blue{\beta_j, \lambda_j}$ for species
+\vspace{5mm}
+- Non Gaussian process
+\vspace{5mm}
+- Latent-variables $\blue{W_i}$
+\vspace{5mm}
+- Mixed model with site random effects $\blue{\alpha_i} \sim \mathcal{N}(0,\blue{V_{\alpha}})$
+
+\ecol
+\ecols
+
+## Bayesian inference methods
+
+### Bayesian inference method
+
+#### Gibbs sampler principle 
+
+Gibbs sampling allow to obtain a realization of $\Theta=(\theta_1,\ldots,\theta_n)$ according to the joint *a posteriori* distribution $p(\theta_1,\ldots,\theta_n|x)$:
+
+- Initialize $\Theta^{(0)}$ by arbitrary values.  
+- Knowing $\Theta^{(t)}=(\theta_1^{(t)},\ldots,\theta_n^{(t)})$ the sample obtained at iteration $t$, we generate for $i=0,\ldots,n$, at iteration $t+1$:  
+\vspace{-1mm}
+$$\theta_i^{(t+1)} \sim p(\theta_i^{(t+1)}|\theta_0^{(t+1)},\ldots,\theta_{i-1}^{(t+1)},\theta_{i+1}^{(t)},\ldots,\theta_{n}^{(t)},x)$$.  
+\vspace{-4mm}
+- We repeat the previous step $N_{Gibbs}$ times (Markov Chain Monte Carlo) and the samples thus obtained allow us to approximate the joint distribution *a posteriori*. 
+
+\pause 
+\vspace{-1 mm}
+#### Bayesian inference methods according to link function:
+
+- Probit model : **Gibbs sampler** and **conjugate priors** formulas to specify the conditional distributions *a posteriori* of parameters.
+
+- Logit and log models: **Gibbs sampler** and **adaptive Metropolis algorithm** to generate the parameters according to an estimation of their conditional distributions *a posteriori*.
+
+### `jSDM` R package
+
+\includegraphics[width=0.97\textwidth]{figs/jSDM-Website.png}
+
+- <https://ecology.ghislainv.fr/jSDM>
+- Made with Rcpp* packages
+
+## Gibbs sampler implemented in C++ 
+Optimized code to reduce computation time on large data-sets:  
+\bcols
+\bcol{0.9\textwidth}
+
+- R package [`Rcpp`](http://www.rcpp.org/) to extend R with C++ code,
+\vspace{5mm}
+- [`Armadillo`](http://arma.sourceforge.net/) C++ library for **matrix calculations**, through [`RcppArmadillo`](http://dirk.eddelbuettel.com/code/rcpp.armadillo.html)
+\vspace{5mm}
+- [`GSL-GNU`](https://www.gnu.org/software/gsl/) scientific library for **random draws**, through [`RcppGSL`](http://dirk.eddelbuettel.com/code/rcpp.gsl.html) R package.
+
+\ecol
+\hspace{-1.5cm}
+\bcol{0.1\textwidth}
+\vspace{0.8cm}   
+\includegraphics[scale=0.06]{figs/logo_Rcpp.png} 
+\includegraphics[scale=0.34]{figs/logo_Armadillo.png} \vspace{3mm}  
+\includegraphics[scale=0.06]{figs/logo_GNU.png}  
+\vspace{3mm}
+\ecol
+\ecols
+
+<!-- ================================================================= -->
+<!-- PART 3: -->
+<!-- ================================================================= -->
+
+# Benchmarking our method against other R packages 
+
+## Model fitting 
+
+#### R packages compared
+
+- `Hmsc` 3.0-11:  R package for Hierarchical Modelling of Species Communities (based on R code).
+- `boral` 2.0:  R package for Bayesian Ordination and Regression Analysis (based on `JAGS` code <http://mcmc-jags.sourceforge.net/>).
+- `jSDM` 0.2.1 : R package, we have developed (based on Rcpp and C++ compiled code). 
+
+\pause
+#### Data-sets used 
+
+- 4 real presence-absence data-sets, used in a recent JSDM benchmark study by @Wilkinson2019 and a simulated one (binomial probit regressions)
+
+- 2 real abundance data-sets [@Choler2005; @Borcard1994] (Poisson log-linear regressions)
+
+\pause
+#### Model definition
+
+We fitted JSDMs of the form: $g(\blue{\theta_{ij}}) = \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j}$. 
+
+## Comparison of computation times and accuracy of results 
+
+### Comparison of computation times and accuracy of results 
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/comparison_poster.pdf}
+\end{center}
+
+- RMSE of the occurrence probabilities ($\theta_{ij}$) for the simulated data-set. 
+\vspace{2mm}
+- Deviance computed as follows : $D=-2\sum_{i}\sum_j\log(\mathbb {P}(y_{ij}\ |\ \hat{\theta}_{ij}))$
+\vspace{2mm}
+- TSS: True Skills Statistic, TSS$:=$sensitivity$+$specificity$-1$.
+
+### Comparison of computation times and accuracy of results 
+
+#### Conclusion 
+\vspace{4mm}
+- `jSDM` is **2** to **7** times faster than `Hmsc` and **15** to **439** times faster than `boral` for presence-absence data-sets.
+\vspace{4mm}
+- `jSDM` is **1.5** to **2.1** times faster than `Hmsc` and **1.7** to **2.9** times faster than `boral` for abundance data-sets. 
+\vspace{4mm}
+- `jSDM` always provides either equivalent or more accurate estimates than `Hmsc`, given the RMSE, TSS and Deviance values. 
+    
+# Mapping tree communities in Madagascar 
+
+## Data-sets considered
+### Data-sets considered
+
+\bcols
+\bcol{0.6\textwidth}
+- National forest inventories (1994-1996).
+\includegraphics[width=0.8\textwidth]{figs/inv_sites.png}
+
+- Climatic variables (1960-1990):
+    * Average annual temperature ($^ \circ C$),
+    * Average annual precipitation (mm),
+    * Seasonality of temperature,
+    * Seasonality of precipitation,
+    * Annual climatic water deficit (mm).
+    
+\ecol
+\bcol{0.5\textwidth}
+\hspace{-5mm} 
+\vspace{4.3cm}
+\includegraphics[width=0.9\textwidth]{figs/current-environmental-variables-1.png}
+\ecol
+\ecols
+
+## Fitting JSDM 
+
+#### Fitting JSDM from Madagascar data-sets
+We performed, a quadratic binomial regression, using `jSDM`, such that: 
+   $$\textrm{probit}(\blue{\theta_{ij}}) = \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j} + \blue{\alpha_i}.$$
+   \vspace{4mm}
+  **Data-sets dimensions, computation time and accuracy of results:**
+  \includegraphics[width=0.96\textwidth]{figs/JSDM_Mada_poster.pdf}
+
+## Residual correlation matrix 
+
+### Residual correlation matrix estimated 
+
+\bcols
+\bcol{0.3\textwidth}
+\vspace{3mm}
+**Full species residual correlation matrix** computed from the estimated **variance-covariance matrix**: $$\blue{\Sigma_{jg}} = \blue{\lambda_j^T \lambda_{g}}$$,  
+for $j,g \in  \llbracket 1,J \rrbracket$, as follows:
+\vspace{3mm}
+  $$\blue{R_{jg}}:=\frac{\blue{\Sigma_{jg}}}{\sqrt{\blue{\Sigma _{jj}\Sigma _{gg}}}}$$
+\ecol
+\bcol{0.7\textwidth}
+\begin{center}
+  \includegraphics[width=0.9\textwidth]{figs/res-corr-poster.eps}   
+  
+$R$ estimated between the 25 more abundant species. 
+\end{center}
+\ecol
+\ecols
+## Spatial interpolation 
+### Spatial interpolation of sites' parameters
+\bcols
+\bcol{0.6\linewidth} 
+
+- **RST**: Regularized Spline with Tension using [`GRASS GIS`](https://grass.osgeo.org/) software via `rgrass7` R package [@Mitasova1993].
+\vspace{5mm}
+- Occurrence probabilities at inventory sites  $\Rightarrow$ species distribution maps at Madagascar scale
+
+\ecol
+\hspace{-3mm}
+\bcol{0.4\linewidth}
+\centering
+\includegraphics[width=0.9\textwidth]{figs/dist_sp1-poster.eps}
+Estimated distribution of species Ocotea laevis and observed occurrences.
+
+\ecol
+\ecols
+\vspace{3mm}
+   
+## Estimated species richness in Madagascar
+   
+### Estimated species richness in Madagascar 
+\vspace{-1mm}
+
+- Species richness observed at site $i$ defined by $R_i:=\sum\limits_{j=1}^Jy_{ij}$.
+\vspace{-1mm}
+- Species richness estimated at site $i$ [@Scherrer2020]: $\widehat{R}_i=\sum\limits_{j=1}^J \hat{\theta}_{ij}$.
+\begin{center}
+\bcols
+\hspace{3mm}
+\hspace{-2mm}
+\bcol{0.25\textwidth} 
+\centering
+\includegraphics[width=1.2\textwidth]{figs/sp-rich-obs-fitted.eps}  
+Species richness estimated and observed at inventory sites.
+\ecol
+\hspace{2mm}
+\bcol{0.35\textwidth} 
+\centering
+\includegraphics[width=0.8\textwidth]{figs/sp-rich-poster.eps}  
+\vspace{2mm}
+Species richness estimated at Madagascar scale.
+\ecol
+\hspace{-7mm}
+\vspace{7mm}
+\bcol{0.35\textwidth} 
+\centering
+\includegraphics[width=0.8\textwidth]{figs/sp-rich-deforest-poster.eps}  
+Species richness estimated restricted to forest cover in 2000.
+\ecol
+\ecols
+\end{center}  
+
+## Tree species community map in Madagascar
+
+### Tree species community map in Madagascar
+\vspace{-2mm}
+**Method** [Allnutt2008]:
+\vspace{-2mm}
+
+- Normalized PCA performed on species' occurrence probabilities,
+\vspace{-0.7mm}
+- Coordinates of the PCA's first three axes scaled to [0,255],
+\vspace{-0.7mm}
+- \textcolor{red}{R}\textcolor{ForestGreen}{G}\textcolor{blue}{B} coloration of the pixels given their scaled PCA's coordinates. 
+
+\bcols
+\bcol{0.31\textwidth} 
+\centering
+\includegraphics[width=0.67\textwidth]{figs/beta-div-poster.eps}  
+Species turnover estimated.
+\ecol
+\bcol{0.31\textwidth} 
+\centering
+\includegraphics[width=0.67\textwidth]{figs/beta-div-deforest-poster.eps}  
+Estimated species turnover restricted to forest cover in 2000.
+\ecol
+\bcol{0.31\textwidth} 
+\centering
+\includegraphics[width=0.67\textwidth]{figs/mada_forest_type.jpg}  
+Forest types in Madagascar
+\ecol
+\ecols
+
+\centering
+- pixels with $\neq$ colors $\Rightarrow$ species present are not the same. 
+- pixels with $\simeq$ colors $\Rightarrow$ communities of similar species.
+
+# Perspectives
+
+## Additional functionalities
+
+### Additional functionalities
+
+- Spatial autocorrelation for $\alpha_i$ and $W_i$
+\vspace{2mm}
+- Continuous data (Gaussian)
+\vspace{2mm}
+- Count data (Negative-Binomial)
+\vspace{2mm}
+- Include phylogenetic data
+\vspace{2mm}
+- Species random/fixed effects
+\vspace{2mm}
+- Presence-only data
+\vspace{2mm}
+- Estimation of latent axes number considered rather than arbitrarily fixing it.
+
+## Methods to improve convergence and estimate the number of latent axes 
+
+###  Latent axes convergence issues 
+\bcols
+\bcol{0.5\linewidth}
+\begin{exampleblock}{Constraints on factor loadings} 
+\vspace{3mm}
+Matrix of factor loadings $\Lambda$, is constrained to be lower triangular and positive on the diagonal, considering two latent axes ($q=2$):
+
+$$\Lambda=\bordermatrix{ & lv_1 & lv_2 \cr
+      sp_1 & \lambda_{11}>0 & 0 & \cr
+      sp_2 & \lambda_{21} & \lambda_{22}>0 \cr
+      \vdots & \dots & \ldots \cr
+      sp_J & \lambda_{J1} & \lambda_{J2}}$$
+\vspace{3mm}
+\end{exampleblock}
+\ecol 
+\bcol{0.5\linewidth}
+\begin{exampleblock}{Algorithm convergence issues}
+\vspace{3mm}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{"figs/jSDM-model-convergence-1.png"}
+\end{center}
+\vspace{2mm}    
+ $\hat{R}$s values of $\lambda$ and $W$ are well above 1, even after $15000$ iterations.
+\end{exampleblock}
+\ecol
+\ecols 
+
+### Methods to improve convergence of latent axes 
+
+\bcols
+\bcol{0.6\textwidth}
+
+Improve convergence of parameters related to the latent axes ($W$, $\lambda$) ([jSDM_binomial_probit_sp_constrained](https://ecology.ghislainv.fr/jSDM/articles/jSDM_binomial_probit_sp_constrained.html)):
+
+\vspace{2mm}
+- Fitting JSDM in parallel to obtain several MCMCs.
+- Evaluate the convergence of $\lambda$ chains using the Gelman-Rubin convergence diagnostic ($\hat{R}$).
+- Identify the species $\hat{j}_l$ maximizing  $\lambda$'s $\hat{R}$ for each latent axis $l$. 
+- Fitting a second model where the $\lambda$ corresponding to this species are constrained to be positive and thus placed on the diagonal of the $\Lambda$ matrix, by reordering species. These constrained species drive the structure of the latent axis $l$. 
+  
+\ecol
+\pause
+\hspace{-3mm}
+\bcol{0.4\textwidth}
+
+Convergence improved: 
+\begin{center}
+\includegraphics[width=1.1\textwidth]{"figs/jSDM-model-convergence-ord-Rhat-1.png"}
+\end{center}  
+
+$\hat{R}$s of $\lambda$ and $W$ are much closer to 1 than previously, after the same number of iterations.
+\ecol
+\ecols
+
+<!-- ### Estimate the number of latent axes:  -->
+
+<!-- - Fitting models considering different number of latent variables and select the better model.  -->
+
+<!-- - Add a variable in the hierarchical Bayesian framework to  -->
+
+\vspace{0.3cm}
+
+\bibsection
+### References  {.allowframebreaks}

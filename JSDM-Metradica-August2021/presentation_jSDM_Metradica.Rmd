@@ -1,0 +1,105 @@
+---
+classoption: table, dvipsname, compress
+output: 
+  beamer_presentation:
+    # keep_tex: true
+    # toc: true
+    slide_level: 3
+    includes:
+      in_header: header.tex
+      before_body: doc_prefix.tex
+      after_body: doc_suffix.tex
+colorlinks: no
+fontsize: 10pt
+link-citations: yes
+linkcolor: Black
+urlcolor: Maroon
+---
+
+```{r options, include=FALSE, echo=FALSE}
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo=TRUE, cache=TRUE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               size="small",
+               fig.align="center",
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+# The `jSDM` R package
+
+## JSDM utility
+### Joint Species Distribution Models utility
+
+\bcols
+\bcol{0.6\textwidth}
+
+- Fit species distribution models
+- Accounting for species co-occurrences
+
+\includegraphics[width=\textwidth]{figs/allfrogs1.jpg}
+
+\vspace{0.5cm}
+
+- Can be used to explain/predict species range and produce species range map
+
+\includegraphics[width=\textwidth]{figs/SDM.jpg}
+
+\ecol
+\bcol{0.4\textwidth}
+
+\includegraphics[width=\textwidth]{figs/Litoria_ewingii.jpg}     
+
+\ecol
+\ecols
+## `jSDM` website
+
+### `jSDM` website 
+
+\includegraphics[width=0.8\textwidth,height=0.8\textheight]{figs/jSDM-website2.png}
+
+- <https://ecology.ghislainv.fr/jSDM>
+- Made with Rcpp* packages
+
+##  Data to fit JSDM
+
+### Data to fit JSDM
+
+- Species presence/absence or abundance on sites
+- Environmental variables (climate, land cover, topography) at each site
+- Species traits 
+
+
+## Model specification
+
+### Model specification
+
+- link function probit or logit for binomial models on presence/absence data 
+- link function log for poisson models on abundance data 
+- function to process long format data including species traits.
+- fixed or random site effect
+- fixed species effect 
+- latent variables 
+
+# Comparison with other software for fitting JSDMs
+
+##  Datasets 
+
+###  Datasets 
+
+\includegraphics[width=0.9\textwidth]{figs/datasets.png}
+
+## Comparison with `boral`
+### Comparison with `boral`
+ From the vignette [Comparison jSDM-boral](https://ecology.ghislainv.fr/jSDM/articles/jSDM_boarl.html) available on `jSDM` website.
+ 
+\includegraphics[width=0.9\textwidth]{figs/jSDM-boral.png}
+
+## Comparison with `Hmsc`
+### Comparison with `Hmsc`
+ From the vignette [Comparison jSDM-Hmsc](https://ecology.ghislainv.fr/jSDM/articles/jSDM_Hmsc.html) available on `jSDM` website. 
+ 
+\includegraphics[width=0.9\textwidth]{figs/jSDM-Hmsc.png}

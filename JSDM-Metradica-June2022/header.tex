@@ -1,0 +1,111 @@
+%\usepackage{pslatex} % to see correctly a .pdf file on the computer screen
+\usepackage{pgf}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amssymb} %symbole de maths
+\usepackage{stmaryrd} % integer interval
+\usepackage{kbordermatrix}
+\usepackage{blkarray}
+\usepackage{amsmath} %idem
+\usepackage[utf8]{inputenc}
+%\usepackage{fancyvrb} %give size to verbatim
+%\usepackage{hyperref}
+\usepackage[english,francais]{babel}
+\definecolor{vertmoyen}{RGB}{51,110,23} % vert moyen
+\definecolor{blueFRB}{HTML}{31859c}
+\usecolortheme[named=blueFRB]{structure}
+\usepackage{tabularx} % varier la largeur du tableau
+\usepackage{layout}
+\usepackage{longtable}
+\setlength{\LTleft}{-5cm plus 1 fill}
+\setlength{\LTright}{-5cm plus 1 fill}
+\usepackage{booktabs}
+\usepackage{arydshln} %% dashlines for tabular
+\newcommand{\logit}{\text{logit}}
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\newcommand{\R}{\textnormal{\sffamily\bfseries R}}
+\newcommand{\pkg}[1]{{\fontseries{b}\selectfont #1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+%% Natbib is a popular style for formatting references.
+%\usepackage{natbib} %doesn't work with beamer
+
+\title[JSDM-Metradica]{Assessing tree species vulnerability to climate change in French Guiana using joint species distribution models}
+%\subtitle{} 
+
+\date{}
+
+% Theme
+% \usetheme{AnnArbor}
+% \usetheme{Dresden}
+% \usetheme{Copenhagen}
+% \usetheme{Frankfurt}
+% \usetheme{Berlin}
+% \usetheme{Madrid}
+% \usetheme{Montpellier}
+% \usetheme{Singapore}
+% \usetheme{Antibes}
+\useinnertheme{rounded} %% bullets
+\useoutertheme[subsection=false]{miniframes}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{frametitle}{%
+    \usebeamerfont{frametitle}\insertframetitle%
+    \vphantom{g} % To avoid fluctuations per frame
+    \par
+    \centering \includegraphics[width=\textwidth]{figs/Barre_couleur}
+}
+
+% Ignore ignorenonframetext class option in default template
+\makeatletter
+\beamer@ignorenonframefalse
+\makeatother
+
+% Logo
+\newif\ifplacelogo % create a new conditional
+\logo{\ifplacelogo\includegraphics[width=0.5\textwidth]{figs/partners_logos}\fi} % replace with your own command
+
+%Call table of contents at the beginning of each section
+\AtBeginSection[]{
+\placelogotrue
+  \begin{frame}
+    \frametitle{Plan}
+    \begin{columns}[c]
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=1,currentsection]
+        \vspace{0.5cm}
+        \tableofcontents[sections=2,currentsection]
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=3,currentsection]
+        \vspace{0.5cm}
+        \tableofcontents[sections=4,currentsection]
+      \end{column}
+    \end{columns}
+  \end{frame}
+\placelogofalse
+}
+
+\AtBeginSubsection[]{}
+
+% \AtBeginSubsection[]{
+% \placelogotrue
+%   \begin{frame}
+%     \frametitle{Plan}
+%     \begin{columns}[c]
+%       \begin{column}{0.5\textwidth}
+%         \tableofcontents[sections={1-2},currentsection,currentsubsection]
+%       \end{column}
+%       \begin{column}{0.5\textwidth}
+%         \tableofcontents[sections={3-4},currentsection,currentsubsection]
+%       \end{column}
+%     \end{columns}
+%   \end{frame}
+% \placelogofalse  
+% }
+
+% Two-columns slides
+\def\bcols{\begin{columns}}
+\def\bcol{\begin{column}}
+\def\ecol{\end{column}}
+\def\ecols{\end{columns}}

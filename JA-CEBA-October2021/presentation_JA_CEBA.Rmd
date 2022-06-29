@@ -1,0 +1,122 @@
+---
+classoption: table, dvipsname
+colorlinks: no
+fontsize: 10pt
+link-citations: yes
+linkcolor: Black
+output:
+  beamer_presentation:
+    includes:
+      after_body: doc_suffix.tex
+      before_body: doc_prefix.tex
+      in_header: header.tex
+    slide_level: 3
+urlcolor: Maroon
+bibliography:  ref_CSI.bib
+biblio-style: "apalike"
+---
+```{r options, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(dplyr)
+opts_chunk$set(echo=FALSE, cache=FALSE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               fig.align="center",
+               eval=FALSE,
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+### Utilisation des modèles de distribution d'espèces (SDMs)
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/sdm.png}
+\end{center}
+
+### Avantages des JSDMs par rapport aux SDMs
+
+- Utiliser l'information apportée par l'ensemble des espèces pour l'estimation des paramètres liés aux sites
+
+- Prendre en compte les interactions entre les espèces 
+\begin{center}
+\includegraphics[width=0.55\textwidth]{figs/allfrogs1.jpg}
+\end{center}
+
+\vspace{0.1cm}
+
+- Peuvent être utilisés pour expliquer/prédire la richesse spécifique des sites et produire différentes cartes de biodiversité
+
+
+### Données utilisées pour ajuster des JSDMs
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{figs/data.png}
+\end{center}
+
+### Librairies existantes pour ajuster des JSDMs
+
+Développement de plusieurs librairies permettant d’ajuster ce type de modèles suivant différentes approches statistiques comme les packages R :
+
+- `Hmsc` [@Ovaskainen2017]
+- `boral` [@Warton2015]
+- `s-jSDM` [@Pichler2020]. 
+
+Cependant, ces librairies ne permettent pas toutes :
+
+- le traitement de jeux de données conséquents en un temps raisonnable 
+- l’extrapolation entre les sites d’observation pour l’obtention de cartes prédictives 
+
+### Package R `jSDM`
+\vspace{0.1cm}
+\begin{center}
+\includegraphics[height=0.9\textheight]{figs/jSDM-website-09-2021.png}
+\end{center}
+
+### Obtention de cartes de communauté en Guyane française 
+
+#### Prédire l’évolution des communautés d'arbres à l'aide d'un JSDM  
+
+Ajuster des JSDMs en utilisant les données suivantes pour prédire l’évolution des aires de distribution des espèces d'arbre sous l’effet du changements climatiques à deux échelles :
+
+- Guyane française (résolution 1km)
+- Station de Paracou avec une résolution plus fine 
+
+
+#### Données utilisées 
+\bcols
+\bcol{0.5\textwidth}
+\begin{itemize}
+\item Inventaires forestiers 
+\vspace{0.2cm}
+\vspace{0.2cm}
+\item Données environnementales et climatiques présentes et futures
+\vspace{0.2cm}
+\item Bases de données de traits fonctionnels 
+\vspace{0.2cm}
+\end{itemize}
+\ecol
+\bcol{0.5\textwidth}
+\includegraphics[width=0.65\textwidth]{figs/locationParacou.jpg}
+\ecol
+\ecols
+
+### Obtention de cartes de communauté en Guyane française 
+#### Enjeux 
+
+Les résultats obtenus pourraient :
+\vspace{0.2cm}
+
+- Montrer une certaine résilience la forêt amazonienne face au changement climatique avec :
+\vspace{0.2cm}
+  - Un changement des aires de répartition des espèces et donc de la composition de la forêt tropicale.
+\vspace{0.2cm}
+  - Conservation du couvert forestier et de la capacité des forêts à absorber et stocker le dioxyde de carbone (CO2).
+\pause
+\vspace{0.2cm}
+- Mettre en évidence la vulnérabilité de la forêt amazonienne face au changement climatiques avec 
+  \vspace{0.2cm}
+  - Une contraction généralisée des aires de répartition des espèces associée à un phénomène de mortalité en masse. 
+
+### Références {.allowframebreaks}

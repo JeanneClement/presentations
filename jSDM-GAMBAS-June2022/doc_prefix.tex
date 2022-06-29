@@ -1,0 +1,66 @@
+% Title page
+{
+  \setbeamertemplate{navigation symbols}{}
+  \begin{frame}[plain, noframenumbering]
+    \begin{center}
+        \small{\textbf{GAMBAS meeting-- Tuesday, June 23th 2022 -- Montpellier}}
+    \end{center}
+    \vspace{-0.5cm}
+    \titlepage % Presentation first page
+    \vspace{-2.5cm}
+    \begin{center}
+      \includegraphics[width=10cm]{figs/Banniere.png}
+    \end{center}
+    \begin{center}
+
+      %{\small
+      {%footnotesize
+        \begin{tabular}{l}
+          Jeanne CLEMENT, CNRS, CEBA, UMR AMAP, \cr
+          Frederic GOSSELIN, INRAE. \cr
+          Ghislain VIEILLEDENT, Cirad, UMR AMAP, \cr
+          Pierre COUTERON, IRD, UMR AMAP.
+        \end{tabular}
+      }
+
+      %}
+
+      \vspace{0.25cm}
+
+      \begin{tabular}{cccc}
+        \qquad \includegraphics[height=0.8cm]{figs/logo_cnrs.png} &
+         \quad  \includegraphics[height=0.7cm]{figs/Logo_CEBA.jpg} \vspace{0.1cm}&
+        \quad  \includegraphics[height=0.7cm]{figs/logo_Cirad.png} &
+          \includegraphics[height=0.9cm]{figs/AMAP.jpg} 
+        ~
+      \end{tabular}
+
+    \end{center}
+
+  \end{frame}
+}
+\setcounter{framenumber}{0}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\placelogotrue
+\begin{frame}
+  \frametitle{Outline}
+  \vspace{-0.3cm}
+  \begin{columns}[c]
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=1]
+        \vspace{0.3cm}
+        \tableofcontents[sections=2]
+        \vspace{0.3cm}
+        \tableofcontents[sections=3]
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \vspace{0.3cm}
+        \tableofcontents[sections=4]
+        \vspace{0.3cm}
+        \tableofcontents[sections=5]
+      \end{column}
+  \end{columns}
+\end{frame}
+\placelogofalse

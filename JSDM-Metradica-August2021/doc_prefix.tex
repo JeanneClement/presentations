@@ -1,0 +1,65 @@
+% Title page
+{
+  \setbeamertemplate{navigation symbols}{}
+
+  % % Title page
+  \begin{frame}[plain, noframenumbering]
+    \begin{center}
+        \small{\textbf{Friday, April 30th 2021 -- Zoom meeting}}
+    \end{center}
+    \vspace{-0.5cm}
+    \titlepage % Presentation first page
+    \vspace{-2.5cm}
+    \begin{center}
+      \includegraphics[width=10cm]{figs/Banniere.png}
+    \end{center}
+    \begin{center}
+
+      %{\small
+        \begin{tabular}{c}
+          Jeanne CLEMENT \\
+          supervisor : Pierre COUTERON \\
+          co-supervisor : Ghislain VIEILLEDENT 
+        \end{tabular}
+      %}
+
+      \vspace{0.25cm}
+
+      %{\small
+        \begin{tabular}{c}
+          \textbf{CNRS}, UMR AMAP, Montpellier, FRANCE\\
+          \textbf{CNRS}, \textbf{Univ Montpellier},  CIRAD, AMAP, FRANCE
+        \end{tabular}
+      %}
+
+      \vspace{0.25cm}
+
+      \begin{tabular}{C{2cm}C{2cm}C{2cm}C{2cm}C{3cm}}
+        \includegraphics[height=1cm]{figs/logo_CNRS.png} &
+        \includegraphics[height=1cm]{figs/logo_UM.jpg} &
+        \includegraphics[height=0.7cm]{figs/logo_Cirad.png} &
+        \includegraphics[height=1.2cm]{figs/AMAP.jpg} 
+        ~
+      \end{tabular}
+
+    \end{center}
+
+  \end{frame}
+}
+\setcounter{framenumber}{0}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\placelogotrue
+\begin{frame}
+  \frametitle{Plan}
+  \begin{columns}[c]
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=1]
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=2]
+       \end{column}
+  \end{columns}
+\end{frame}
+\placelogofalse

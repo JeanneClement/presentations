@@ -1,0 +1,96 @@
+---
+classoption: table, dvipsname
+colorlinks: yes
+fontsize: 10pt
+link-citations: yes
+linkcolor: Black
+urlcolor: Maroon
+output:
+  beamer_presentation:
+    includes:
+      before_body: doc_prefix.tex
+      in_header: header.tex
+    slide_level: 1
+---
+
+```{r options, include=FALSE}
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo=TRUE, cache=FALSE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               fig.show="hide", size="small",
+               fig.align="center",
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+# Mapping tree communities in tropical forests using JSDMs
+\setlength{\leftmargini}{0.5cm}
+\vspace{-0.15cm}
+\bcols
+\bcol{0.55\linewidth}
+\begin{block}{Usage of Species Distribution Models}
+
+\begin{center}
+\includegraphics[width=0.9\textwidth]{figs/SDM.jpg}
+\end{center}
+\end{block}
+\vspace{-0.15cm}
+\begin{block}{Joint Species Distribution Models}
+\vspace{-0.2cm}
+\bcols
+\bcol{0.47\linewidth}
+\begin{exampleblock}{\center{\small{Benefits over SDMs}}}
+\begin{itemize}
+\item Accounting for species co-occurrences  \vspace{1mm} \linebreak 
+\includegraphics[width=0.77\textwidth]{figs/allfrogs1.jpg}
+\item Including species traits as explanatory variables 
+\end{itemize}
+\end{exampleblock}
+\ecol
+\hspace{-0.8cm}
+\bcol{0.47\linewidth}
+\vspace{-0.45cm}
+\begin{exampleblock}{\center{\small{Data used}}}
+\vspace{0.1cm}
+\begin{center}
+\includegraphics[width=0.99\textwidth]{figs/datasets2.pdf}
+\end{center}
+\end{exampleblock}
+\ecol
+\ecols
+\vspace{1mm}
+\end{block}
+\ecol
+
+\pause 
+\hspace{0.4mm}
+\bcol{0.55\linewidth}
+\begin{block}{R package \texttt{jSDM}}
+\vspace{-0.35cm}
+\begin{exampleblock}{\center{\small{Description}}}
+\begin{itemize}
+\item Hierarchical Bayesian framework 
+\item Optimized C++ code to reduce computation time on large data-sets
+\vspace{0.5mm}
+\item Website \footnotesize{\url{https://ecology.ghislainv.fr/jSDM}}
+\end{itemize}
+\vspace{0.5mm}
+\begin{center}
+\includegraphics[width=0.65\textwidth]{figs/jSDM-Website.png}
+\end{center}
+\end{exampleblock}
+\vspace{-0.3cm}
+
+\begin{exampleblock}{\center{\small{Applications}}}
+\begin{itemize}
+\item Benchmarking our method against \texttt{Hmsc} and \texttt{boral} R packages.
+\vspace{1mm}
+\item Fitting JSDM from large forest inventories for Mapping tree communities in Madagascar.
+\end{itemize}
+\end{exampleblock}
+\end{block}
+\ecol
+\ecols 

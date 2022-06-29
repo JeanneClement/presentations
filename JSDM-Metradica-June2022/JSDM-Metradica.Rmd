@@ -1,0 +1,333 @@
+---
+classoption: table, dvipsname, compress
+bibliography:  ref_GAMBAS.bib
+biblio-style: "apalike"
+output: 
+  beamer_presentation:
+    # keep_tex: true
+    # toc: true
+    slide_level: 3
+    includes:
+      in_header: header.tex
+      before_body: doc_prefix.tex
+      after_body: doc_suffix.tex
+colorlinks: yes
+fontsize: 10pt
+link-citations: yes
+linkcolor: Black
+urlcolor: Maroon
+---
+
+
+```{r options, include=FALSE}
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo=TRUE, cache=TRUE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               fig.show="hide", size="small",
+               fig.align="center",
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+
+# Introduction
+
+## JSDMs
+
+### Joint Species Distribution Models (JSDMs)
+
+**Species Distribution Model (SDM), for one single species.**
+
+- $\red{y_i} \sim \mathcal{B}ernoulli( \blue{\theta_i} )$
+- $i$: site
+- $g(\theta_i) = \red{X_i} \blue{\beta}$
+- $\red{X}$: environmental variables
+- $\blue{\beta}$: species effects
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{figs/SDM.jpg}
+\end{center}
+
+**JSDM $=$ SDM for community of species.**
+
+### Joint Species Distribution Models (JSDMs)
+**Model definition**
+
+- $\red{y_{ij}}  \sim \mathcal{B}inomial(\red{n_i} , \blue{\theta_{ij}})$, for presence-absence data,
+\vspace{0.5mm}
+- $\red{y_{ij}} \sim\mathcal{P}oisson(\blue{\theta_{ij}})$, for abundance data, such that: 
+\vspace{-0.7mm}
+   $$g(\blue{\theta_{ij}})= \blue{\alpha_i} + \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j}$$
+- $i$: site, $j$: species
+- $g$: a link function (probit, logit or log).
+- $\red{n_i}$: number of visits to site $i$.
+- $\blue{\theta_{ij}}$: occurrence probability or mean abundance of species $j$ at site $i$.
+- $\blue{\alpha_i}$: site effect (mean site suitability)
+- $\red{X_i}$: environmental variables including the intercept.  
+- $\blue{\beta_j}$: species effect  for species $j$,
+- $\blue{W_i}$: latent variables (or "unmeasured predictors") for site $i$,
+- $\blue{\lambda_j}$: factor loadings for species $j$
+- $\blue{\Sigma_{jg}}=\blue{\lambda_j^t\lambda_g}$: coefficient for species $j$ and $g$ of the variance-covariance matrix  (species co-occurrences) used to compute the **full species residual correlation matrix**:
+  $\blue{R_{jg}}:=\frac{\blue{\Sigma_{jg}}}{\sqrt{\blue{\Sigma _{jj}\Sigma _{gg}}}}.$
+
+### Joint Species Distribution Models
+
+JSDMs provide a convenient statistical framework to test **trait-environment** interactions.
+\vspace{2mm}
+\bcols
+\bcol{0.7\textwidth}
+
+$\beta_j$ can be expressed as a function of functional traits
+
+- if $n$ species traits are considered:
+    $\blue{\beta_j} \sim \mathcal{N}_{p+1}(\blue{\mu_{\beta_j}},V_{\beta})$,
+    * with $\blue{\mu_{\beta_{jk}}}  = \sum_{r=0}^{n}  \blue{T_{jr}}.\blue{\gamma_{rk}}$, for $k \in \llbracket 0,p \rrbracket$, considering $p$ covariates. 
+    * where $\blue{\gamma}=\bordermatrix{ & Int & X_1 & \ldots & X_p \cr
+      Int & \blue{\gamma_{0,0}} & \blue{\gamma_{0,1}} & \ldots & \blue{\gamma_{0,p+1}} \cr
+      T_1 & \blue{\gamma_{1,0}} & \blue{\gamma_{1,1}} & \ldots & \blue{\gamma_{1,p+1}} \cr
+      \vdots & \dots & \ldots & \ldots & \ldots \cr
+      T_n & \blue{\gamma_{n,0}} & \blue{\gamma_{n,1}} & \ldots & \blue{\gamma_{n+1,p+1}}}$
+      
+\vspace{2mm}   
+
+- else:  $\blue{\beta_j} \sim \mathcal{N}_{p+1}(\mu_{\beta},V_{\beta})$, for $j \in  \llbracket 1,J \rrbracket$.
+
+\ecol 
+
+\bcol{0.3\textwidth}
+
+\centering 
+
+\includegraphics[width=0.9\textwidth]{figs/four-corner-model}
+\ecol
+
+\ecols
+
+JSDMs can help narrow the gap between **correlative** and **mechanistic** species distribution models.
+
+## METRADICA's objectives
+
+### Objectives of METRADICA (Task 3)
+
+Using JSDMs:
+
+- Test **trait-environmment** interactions for determining tree species distribution in French Guiana.
+- Assess species vulnerability to climate change (through contraction of species range).
+- Interpret species vulnerability to climate change in terms of functional traits.
+- Derive maps of $\alpha$ and $\beta$ diversity for French Guiana.
+- Identify refuge area for biodiversity under climate change (stable tree communities).
+
+<!-- ============================================ -->
+<!-- Methods -->
+<!-- ============================================ -->
+
+# Material and methods
+
+## Datasets
+
+### Datasets
+
+\bcols
+\bcol{0.5\textwidth}
+
+Three types of data-sets:
+\vspace{3mm}
+
+- Species occurrences on sites
+- Species trait database
+- Environmental database
+
+\ecol
+\bcol{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figs/datasets2.pdf}
+\ecol
+\ecols
+
+### Occurrences
+
+```{r inventories, include=FALSE}
+## Libraries
+library(readr)
+## Guyafor
+f <- "/home/clement/Documents/projet_METRADICA/data/Inventaires/202110_DonneesModeleMetradicaTout+Diam.csv"
+df <- read_delim(f, delim=";")
+nplots_1 <- length(unique(paste0(df$Project, df$idPlot)))
+## Guyadiv
+f <- "/home/clement/Documents/projet_METRADICA/data/Inventaires/20211203_GuyaDiv.csv"
+df <-  read_delim(f, delim=",")
+nplots_2 <- length(unique(paste0(df$Forest, df$Plot)))
+## Total
+nplots <- nplots_1 + nplots_2
+```
+
+\bcols
+\bcol{0.5\textwidth}
+
+- Forest plot inventories coming from several networks combined together
+- Networks: Guyafor, Gentry, Habitat, Guyadiv
+- Presence-absence data and abundances
+- `r nplots` forest plots
+- About 1700 tree species, most of which are rare
+
+\ecol
+\bcol{0.5\textwidth}
+\includegraphics[width=\textwidth]{figs/inventories}
+\ecol
+\ecols
+
+### Traits
+
+- Large "soft" trait (WD, LSA, tree max height, etc.) databases from previous CEBA projects.
+- Five additional mechanistic traits from Metradica project:
+  - leaf water potential at which cells lose turgor (Ptlp), minimum leaf conductance (gmin), leaf saturated water content (LSWC), vein density (VLA), stomatal density (SD).
+  - 24 species, 672 trees, three sites with both hills and valleys spread on a precipitation gradient.
+
+### Environment
+
+**Variables:**
+
+- Topographic data (SRTM and LiDAR, Slope, aspect, roughness, solar radiation, TWI...)
+- Soil data
+- Distance to human infrastructures (roads, villages...)
+- Climatic data ([Chelsa](https://chelsa-climate.org/)) in the present and the future
+
+**R package to gather these data: <https://guyaclim.cirad.fr>:**
+
+- User friendly
+- Allows the user to specify the desired:
+  * geographic area
+  * resolution
+  * spatial projection
+- Efficiency: 
+  * R packages `terra` and `stars` for spatial objects
+  * Software [`GRASS GIS`](https://grass.osgeo.org/) via `rgrass` R package and [`GDAL`](https://gdal.org/) via `rgdal` R package, used for reprojection, resampling and data computation. 
+
+## Study scales
+
+### Scales: biogeography and micro-environment
+
+\bcols
+\bcol{0.7\textwidth}
+
+**Local scale: microtopography $\times$ traits**
+
+- Scale $=$ ~10km, resolution $=$ ~5m
+- Explicative model: E $\times$ T
+- Using MNT at 5m: hills (_"terra firme"_) and valleys
+
+**Country scale (French Guiana)**
+
+- Scale $=$ FG, resolution $=$ ~1km
+- Explicative and predictive model
+- Two models
+  * Without traits
+    - Predictive model
+    - Present: distribution and co-occurrences of species
+    - Future: range contraction in the future: (i) species vulnerability to climate change, (ii) change in species composition
+  * With traits
+    - Explicative model: E $\times$ T
+    - Explaining species location (biogeography)
+
+\ecol
+\bcol{0.3\textwidth}
+\includegraphics[width=\textwidth]{figs/locationParacou.jpg}
+\ecol
+\ecols
+
+## `jSDM` R package
+
+### `jSDM` R package
+
+\includegraphics[width=0.97\textwidth]{figs/jSDM-Website.png}
+
+- <https://ecology.ghislainv.fr/jSDM>
+- Made with Rcpp* packages
+<!-- ============================================ -->
+<!-- Perspectives -->
+<!-- ============================================ -->
+
+## Benchmarking our method against other R packages 
+
+### Benchmarking our method against other R packages 
+
+#### R packages compared
+
+- `Hmsc` 3.0-11:  R package for Hierarchical Modelling of Species Communities (based on R code).
+- `boral` 2.0:  R package for Bayesian Ordination and Regression Analysis (based on `JAGS` code <http://mcmc-jags.sourceforge.net/>).
+- `jSDM` 0.2.1 : R package, we have developed (based on Rcpp and C++ compiled code). 
+
+\pause
+#### Data-sets used 
+
+- 4 real presence-absence data-sets, used in a recent JSDM benchmark study by @Wilkinson2019 and a simulated one (binomial probit regressions)
+
+- 2 real abundance data-sets [@Choler2005; @Borcard1994] (Poisson log-linear regressions)
+
+\pause
+#### Model definition
+
+We fitted JSDMs of the form: $g(\blue{\theta_{ij}}) = \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j}$. 
+
+### Computation times and accuracy of results 
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/comparison_poster.pdf}
+\end{center}
+
+- RMSE of the occurrence probabilities ($\theta_{ij}$) for the simulated data-set. 
+\vspace{2mm}
+- Deviance computed as follows : $D=-2\sum_{i}\sum_j\log(\mathbb {P}(y_{ij}\ |\ \hat{\theta}_{ij}))$
+\vspace{2mm}
+- TSS: True Skills Statistic, TSS$:=$sensitivity$+$specificity$-1$.
+
+### Comparison of computation times and accuracy of results 
+
+\vspace{4mm}
+- `jSDM` is **2** to **7** times faster than `Hmsc` and **15** to **439** times faster than `boral` for presence-absence data-sets.
+\vspace{4mm}
+- `jSDM` is **1.5** to **2.1** times faster than `Hmsc` and **1.7** to **2.9** times faster than `boral` for abundance data-sets. 
+\vspace{4mm}
+- `jSDM` always provides either equivalent or more accurate estimates than `Hmsc`, given the RMSE, TSS and Deviance values. 
+
+# Perspectives
+
+## Model comparison
+
+### Model comparison with forest dynamics models
+
+**TROLL model**
+
+- Tropical forest dynamics model
+- Growth, mortality, recruitment through carbon allocation
+- Species parameters are derived from traits
+- Calibrated on some forests of French Guiana
+
+**Model comparison**
+
+- Species excluded from the community with TROLL under climate change.
+- Do the same species experience a severe range contraction with JSDMs?
+
+## Applications
+
+### Applications
+
+- Anticipating climate change effects on tropical forest in French Guiana
+\vspace{3mm}
+  - Massive tree mortality events and forest conversion to savannas?
+  \vspace{2mm}
+  - Change in species composition?
+  
+\vspace{3mm}
+
+- Identification of refuge areas for conservation $\Rightarrow$ systematic conservation planning.
+
+### References {.allowframebreaks}
+
+
+<!-- ============================================ -->
+<!-- EOF
+<!-- ============================================ -->

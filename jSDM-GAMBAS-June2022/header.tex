@@ -1,0 +1,144 @@
+%\usepackage{pslatex} % to see correctly a .pdf file on the computer screen
+\usepackage{pgf}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amssymb} %symbole de maths
+\usepackage{amsmath}
+\usepackage{kbordermatrix}
+\usepackage{blkarray}
+\usepackage{stmaryrd} % integer interval
+\usepackage{upgreek} %idem
+\usepackage[utf8]{inputenc}
+\usepackage{listings} % code display
+\usepackage{marvosym} %\MVRightarrow
+%\usepackage{fancyvrb} %give size to verbatim
+\usepackage[english,francais]{babel}
+\definecolor{vertmoyen}{RGB}{51,110,23} % vert moyen
+\usecolortheme[named=vertmoyen]{structure}
+\usepackage{tabularx} % varier la largeur du tableau
+\usepackage{layout}
+\usepackage{longtable}
+\setlength{\LTleft}{-5cm plus 1 fill}
+\setlength{\LTright}{-5cm plus 1 fill}
+\usepackage{booktabs}
+\usepackage{arydshln} %% dashlines for tabular
+\newcommand{\logit}{\text{logit}}
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\newcommand{\R}{\textnormal{\sffamily\bfseries R}}
+\newcommand{\pkg}[1]{{\fontseries{b}\selectfont #1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand\bibsection{\section*{References}}
+%% Natbib is a popular style for formatting references.
+%\usepackage{natbib} %doesn't work with beamer
+
+\title[Mapping tree communities in tropical forests using JSDMs]{\LARGE {\textbf{Mapping tree communities in tropical forests using Joint Species Distribution Models}}}
+%\subtitle{}
+\date{}
+
+% Theme
+% \usetheme{AnnArbor}
+% \usetheme{Dresden}
+ \usetheme{Copenhagen}
+% \usetheme{Frankfurt}
+% \usetheme{Berlin}
+% \usetheme{Madrid}
+% \usetheme{Montpellier}
+% \usetheme{Singapore}
+% \usetheme{Antibes}
+\useinnertheme{rounded} %% bullets
+\useoutertheme[subsection=false]{miniframes}
+%\useoutertheme[subsection=false,footline=authorinstitutetitle]{miniframes}
+\setbeamertemplate{footline}[frame number]
+
+% % Set beamer colors
+% \definecolor{Vert}{RGB}{51,110,23} % UBC Blue (primary)
+% \definecolor{Grey}{rgb}{0.3686, 0.5255, 0.6235} % UBC Grey (secondary)
+% \setbeamercolor{palette primary}{bg=Vert,fg=white}
+% \setbeamercolor{palette secondary}{bg=Vert,fg=white}
+% \setbeamercolor{palette tertiary}{bg=Vert,fg=white}
+% \setbeamercolor{palette quaternary}{bg=Vert,fg=white}
+% \setbeamercolor{structure}{fg=Vert} % itemize, enumerate, etc
+% \setbeamercolor{section in toc}{fg=Vert} % TOC sections
+% 
+% % Override palette coloring with secondary
+% \setbeamercolor{subsection in head/foot}{bg=Grey,fg=white}
+
+% Ignore ignorenonframetext class option in default template
+\makeatletter
+\beamer@ignorenonframefalse
+\makeatother
+
+% Logo
+\newif\ifplacelogo % create a new conditional
+\logo{
+  \ifplacelogo
+      \begin{tabular}{cccc} 
+       \qquad \includegraphics[height=0.8cm]{figs/logo_cnrs.png} &
+        \quad  \includegraphics[height=0.7cm]{figs/Logo_CEBA.jpg} \vspace{0.1cm}&
+        \quad  \includegraphics[height=0.7cm]{figs/logo_Cirad.png} &
+        \includegraphics[height=0.9cm]{figs/AMAP.jpg} \hspace{1.5cm}
+        ~
+      \end{tabular}
+  \fi
+} % replace with your own command
+
+%Call table of contents at the beginning of each section
+\AtBeginSection[]{
+\placelogotrue
+  \begin{frame}
+    \frametitle{Outline}
+    \vspace{-0.3cm}
+    \begin{columns}[c]
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=1, currentsection]
+        \vspace{0.3cm}
+        \tableofcontents[sections=2, currentsection]
+        \vspace{0.3cm}
+        \tableofcontents[sections=3, currentsection]
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \tableofcontents[sections=4, currentsection]
+        \vspace{0.3cm}
+        \tableofcontents[sections=5, currentsection]
+      \end{column}
+    \end{columns}
+  \end{frame}
+\placelogofalse
+}
+
+\AtBeginSubsection[]{}
+
+% \AtBeginSubsection[]{
+% \placelogotrue
+%   \begin{frame}
+%     \frametitle{Plan}
+%     \begin{columns}[c]
+%       \begin{column}{0.5\textwidth}
+%         \tableofcontents[sections={1-2},currentsection,currentsubsection]
+%       \end{column}
+%       \begin{column}{0.5\textwidth}
+%         \tableofcontents[sections={3-4},currentsection,currentsubsection]
+%       \end{column}
+%     \end{columns}
+%   \end{frame}
+% \placelogofalse
+% }
+
+% Two-columns slides
+\def\bcols{\begin{columns}}
+\def\bcol{\begin{column}}
+\def\ecol{\end{column}}
+\def\ecols{\end{columns}}
+
+% % Change fontsize of R code
+% \let\oldShaded\Shaded
+% \let\endoldShaded\endShaded
+% \renewenvironment{Shaded}{\footnotesize\oldShaded}{\endoldShaded}
+% 
+% Change fontsize of output
+\let\oldverbatim\verbatim
+\let\endoldverbatim\endverbatim
+\renewenvironment{verbatim}{\footnotesize\oldverbatim}{\endoldverbatim}
