@@ -1,0 +1,607 @@
+---
+classoption: table, dvipsname, compress
+bibliography:  ref_GAMBAS.bib
+biblio-style: "apalike"
+output: 
+  beamer_presentation:
+    # keep_tex: true
+    # toc: true
+    slide_level: 3
+    includes:
+      in_header: header.tex
+      before_body: doc_prefix.tex
+      after_body: doc_suffix.tex
+colorlinks: yes
+fontsize: 10pt
+header-includes: 
+  - \usepackage{hyperref}
+    \hypersetup{
+      hidelinks,
+      colorlinks=true,
+      urlcolor=blue,
+      linkcolor=black,
+      breaklinks=true,
+    }
+link-citations: yes
+linkcolor: Black
+urlcolor: Maroon
+---
+
+
+```{r options, include=FALSE}
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo=TRUE, cache=TRUE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               fig.show="hide", size="small",
+               fig.align="center",
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+# jSDM package for fitting JSDMs
+
+## Joint Species Distribution Models (JSDMs)
+### Joint Species Distribution Models (JSDMs)
+
+**Species Distribution Model (SDM), for one single species.**
+
+- $\red{y_i} \sim \mathcal{B}ernoulli( \blue{\theta_i} )$
+- $i$: site
+- $g(\theta_i) = \red{X_i} \blue{\beta}$
+- $\red{X}$: environmental variables
+- $\blue{\beta}$: species effects
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{figs/SDM.jpg}
+\end{center}
+
+**JSDM $=$ SDM for community of species.**
+
+### Joint Species Distribution Models (JSDMs)
+
+**Model definition**
+
+- $\red{y_{ij}}  \sim \mathcal{B}inomial(\red{n_i} , \blue{\theta_{ij}})$, for presence-absence data,
+\vspace{0.5mm}
+- $\red{y_{ij}} \sim\mathcal{P}oisson(\blue{\theta_{ij}})$, for abundance data, such that: 
+\vspace{-0.7mm}
+   $$g(\blue{\theta_{ij}})= \blue{\alpha_i} + \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j}$$
+- $i$: site, $j$: species
+- $g$: a link function (probit, logit or log).
+- $\red{n_i}$: number of visits to site $i$.
+- $\blue{\theta_{ij}}$: occurrence probability or mean abundance of species $j$ at site $i$.
+- $\blue{\alpha_i}$: site effect (mean site suitability)
+- $\red{X_i}$: environmental variables including the intercept.  
+- $\blue{\beta_j}$: species effect  for species $j$,
+- $\blue{W_i}$: latent variables (or "unmeasured predictors") for site $i$,
+- $\blue{\lambda_j}$: factor loadings for species $j$
+- $\blue{\Sigma_{jg}}=\blue{\lambda_j^t\lambda_g}$: coefficient for species $j$ and $g$ of the variance-covariance matrix  (species co-occurrences) used to compute the **full species residual correlation matrix**:
+  $\blue{R_{jg}}:=\frac{\blue{\Sigma_{jg}}}{\sqrt{\blue{\Sigma _{jj}\Sigma _{gg}}}}.$
+
+### Joint Species Distribution Models
+
+JSDMs provide a convenient statistical framework to test **trait-environment** interactions.
+\vspace{2mm}
+\bcols
+\bcol{0.7\textwidth}
+
+$\beta_j$ can be expressed as a function of functional traits
+
+- if $n$ species traits are considered:
+    $\blue{\beta_j} \sim \mathcal{N}_{p+1}(\blue{\mu_{\beta_j}},V_{\beta})$,
+    * with $\blue{\mu_{\beta_{jk}}}  = \sum_{r=0}^{n}  \blue{T_{jr}}.\blue{\gamma_{rk}}$, for $k \in \llbracket 0,p \rrbracket$, considering $p$ covariates. 
+    * where $\blue{\gamma}=\bordermatrix{ & Int & X_1 & \ldots & X_p \cr
+      Int & \blue{\gamma_{0,0}} & \blue{\gamma_{0,1}} & \ldots & \blue{\gamma_{0,p+1}} \cr
+      T_1 & \blue{\gamma_{1,0}} & \blue{\gamma_{1,1}} & \ldots & \blue{\gamma_{1,p+1}} \cr
+      \vdots & \dots & \ldots & \ldots & \ldots \cr
+      T_n & \blue{\gamma_{n,0}} & \blue{\gamma_{n,1}} & \ldots & \blue{\gamma_{n+1,p+1}}}$
+      
+\vspace{2mm}   
+
+- else:  $\blue{\beta_j} \sim \mathcal{N}_{p+1}(\mu_{\beta},V_{\beta})$, for $j \in  \llbracket 1,J \rrbracket$.
+
+\ecol 
+
+\bcol{0.3\textwidth}
+
+\centering 
+
+\includegraphics[width=0.9\textwidth]{figs/four-corner-model}
+\ecol
+
+\ecols
+
+JSDMs can help narrow the gap between **correlative** and **mechanistic** species distribution models.
+
+## `jSDM` R package
+
+### `jSDM` R package
+
+\includegraphics[width=0.89\textwidth]{figs/jSDM-website-2023-03.png}
+
+- <https://ecology.ghislainv.fr/jSDM>
+- Made with Rcpp* packages
+
+### Available functions
+
+The package includes the following functions to fit various species distribution models :
+
+```{r jSDM-functions, echo=FALSE}
+library(kableExtra)
+names <- c("jSDM\\_binomial\\_logit", "jSDM\\_binomial\\_probit",
+           "jSDM\\_binomial\\_probit\\_sp\\_constrained",
+           "jSDM\\_binomial\\_probit\\_long\\_format",
+           "jSDM\\_poisson\\_log", "jSDM\\_gaussian")
+url <- paste0("https://ecology.ghislainv.fr/jSDM/reference/", names, ".html")
+href <- paste0("\\href{", url, "}{", names, "}")
+results <- data.frame(names=href,
+                      type=c(rep("presence-absence", 4), "abundance", "continuous"),
+                      format=c(rep("wide", 3), "long", rep("wide", 2)))
+colnames(results) <- c("function", "data type", "data format")
+knitr::kable(results, row.names=F, digits=1, format = 'latex', escape=FALSE,
+             booktabs=TRUE, align = 'l') %>%
+  kableExtra::kable_styling(latex_options=c("HOLD_position","striped"), full_width=FALSE) 
+```
+
+# Examples of jSDM usage
+
+## Mapping tree communities in Madagascar 
+
+### Mapping tree communities in Madagascar 
+
+#### Data-sets considered
+
+\vspace{-0.3cm}
+\bcols
+\bcol{0.4\textwidth}
+
+- National forest inventories (1994-1996).
+
+\centering
+\includegraphics[width=0.65\textwidth]{figs/inv_sites.png}
+\ecol
+\bcol{0.6\textwidth}
+\vspace{-0.2cm}
+\hspace{-5mm} 
+
+- Climatic variables (1960-1990):
+    * Average annual temperature ($^ \circ C$),
+    * Average annual precipitation (mm),
+    * Seasonality of temperature,
+    * Seasonality of precipitation,
+    * Annual climatic water deficit (mm)
+    
+\centering
+\vspace{0.1cm}
+\includegraphics[width=1\textwidth]{figs/current-environmental-variables-1.png}
+
+\ecol
+\ecols
+
+### Mapping tree communities in Madagascar 
+
+#### Fitting JSDM from Madagascar data-sets
+
+We performed, a quadratic binomial regression, using `jSDM`, such that: 
+   $$\textrm{probit}(\blue{\theta_{ij}}) = \red{X_i}\blue{\beta_j} + \blue{W_i\lambda_j} + \blue{\alpha_i}.$$
+   \vspace{4mm}
+  **Data-sets dimensions, computation time and accuracy of results:**
+  \includegraphics[width=0.96\textwidth]{figs/JSDM_Mada_poster.pdf}
+  
+### Mapping tree communities in Madagascar 
+
+#### Residual correlation matrix estimated 
+
+\bcols
+\bcol{0.3\textwidth}
+\vspace{3mm}
+**Full species residual correlation matrix** computed from the estimated **variance-covariance matrix**: $$\blue{\Sigma_{jg}} = \blue{\lambda_j^T \lambda_{g}}$$,  
+for $j,g \in  \llbracket 1,J \rrbracket$, as follows:
+\vspace{3mm}
+  $$\blue{R_{jg}}:=\frac{\blue{\Sigma_{jg}}}{\sqrt{\blue{\Sigma _{jj}\Sigma _{gg}}}}$$
+\ecol
+\bcol{0.7\textwidth}
+\begin{center}
+  \includegraphics[width=0.9\textwidth]{figs/res-corr-poster.eps}   
+  
+$R$ estimated between the 25 more abundant species. 
+\end{center}
+\ecol
+\ecols
+
+### Mapping tree communities in Madagascar 
+
+#### Spatial interpolation of sites' parameters
+
+\bcols
+\bcol{0.6\linewidth} 
+
+- **RST**: Regularized Spline with Tension using [`GRASS GIS`](https://grass.osgeo.org/) software via `rgrass7` R package [@Mitasova1993].
+\vspace{5mm}
+- **Occurrence probabilities** at inventory sites  $\Rightarrow$ **species distribution maps** at Madagascar scale
+
+\ecol
+\hspace{-3mm}
+\bcol{0.4\linewidth}
+\centering
+\includegraphics[width=0.9\textwidth]{figs/dist_sp1-poster.eps}
+Estimated distribution of species *Ocotea laevis* and observed occurrences.
+
+\ecol
+\ecols
+
+### Estimated species richness in Madagascar 
+\vspace{-1mm}
+- Species richness observed at site $i$ defined by $R_i:=\sum\limits_{j=1}^Jy_{ij}$.
+\vspace{-1mm}
+- Species richness estimated at site $i$ [@Scherrer2020]: $\widehat{R}_i=\sum\limits_{j=1}^J \hat{\theta}_{ij}$.
+\vspace{-7mm}
+\bcols
+\hspace{-12mm}
+\bcol{0.5\textwidth} 
+\begin{center}
+\includegraphics[width=1.1\textwidth]{figs/sp_rich_obs_fitted.pdf}  
+\end{center}  
+\vspace{-2mm}
+Species richness estimated and observed at inventory sites.
+\ecol
+\hspace{-7mm}
+\bcol{0.5\textwidth} 
+\vspace{-8mm}
+\begin{center}
+\includegraphics[width=1.29\textwidth]{figs/sp-rich-deforest.pdf} 
+\end{center}  
+\vspace{-1mm}
+Species richness estimated at Madagascar scale restricted to forest cover in 2000.
+\ecol
+\ecols
+
+### Tree species community map in Madagascar
+\vspace{-1mm}
+**Method** [@Allnutt2008]:
+\vspace{-1mm}
+
+- Normalized PCA performed on species' occurrence probabilities,
+- Coordinates of the PCA's first three axes scaled to [0,255],
+- \textcolor{red}{R}\textcolor{ForestGreen}{G}\textcolor{blue}{B} coloration of the pixels given their scaled PCA's coordinates. 
+\vspace{-5mm}
+\bcols
+\bcol{0.31\textwidth}
+\begin{center}
+\includegraphics[width=1.55\textwidth]{figs/beta-div.pdf}  
+Species turnover estimated.
+\end{center}
+\ecol
+\bcol{0.31\textwidth} 
+\begin{center}
+\includegraphics[width=1.5\textwidth]{figs/beta-div-deforest.pdf}  
+\end{center}
+\vspace{-2mm}
+Estimated species turnover restricted to forest cover in 2000.
+\ecol
+\hspace{3mm}
+\bcol{0.31\textwidth} 
+\begin{center}
+\includegraphics[width=0.67\textwidth]{figs/mada_forest_type.jpg} 
+\end{center}
+Forest types in Madagascar
+\ecol
+\ecols
+
+
+### Tree species community map in Madagascar
+
+- pixels with $\neq$ colors $\Rightarrow$ species present are not the same. 
+- pixels with $\simeq$ colors $\Rightarrow$ communities of similar species.
+
+\bcols
+\bcol{0.31\textwidth}
+\begin{center}
+\includegraphics[width=1.55\textwidth]{figs/beta-div.pdf}  
+Species turnover estimated.
+\end{center}
+\ecol
+\bcol{0.31\textwidth} 
+\begin{center}
+\includegraphics[width=1.5\textwidth]{figs/beta-div-deforest.pdf}  
+\end{center}
+\vspace{-2mm}
+Estimated species turnover restricted to forest cover in 2000.
+\ecol
+\hspace{3mm}
+\bcol{0.31\textwidth} 
+\begin{center}
+\includegraphics[width=0.67\textwidth]{figs/mada_forest_type.jpg} 
+\end{center}
+Forest types in Madagascar
+\ecol
+\ecols
+
+## Classification of tree communities in New Caledonia 
+
+### Classification of tree communities in New Caledonia 
+\vspace{-7mm}
+#### Fitting JSDM in New Caledonia
+\hspace{-5mm}
+\bcols
+\vspace{-7mm}
+\bcol{0.5\textwidth}
+
+**Explanatory variables** of the model and the orders considered: 
+
+\vspace{2mm}
+\includegraphics[height=0.37\textheight]{figs/X_NC.png}
+\vspace{6mm}
+\hspace{-7mm}
+\ecol
+\hspace{1mm}
+\vspace{-27mm}
+\bcol{0.5\textwidth}
+
+**Fitting a JSDM** from available data in New Caledonia
+
+\vspace{6mm}
+\includegraphics[height=0.29\textheight]{figs/JSDM_NC.png}
+\vspace{10mm}
+\ecol
+\ecols
+
+### Obtaining biodiversity maps in New Caledonia 
+
+#### Estimated species richness in New Caledonia 
+
+Using the adjusted JSDM, it was possible to obtain biodiversity maps for New Caledonia following the same method as that presented for Madagascar. 
+
+\vspace{-1mm}
+\bcols
+\hspace{-18mm}
+\bcol{0.4\textwidth} 
+\begin{center}
+\includegraphics[height=0.5\textheight]{figs/species_richness_observed_vs_estimated.png}
+\end{center}
+\vspace{-2mm}
+**Species richness** estimated and observed at **inventory sites**.
+\ecol
+\hspace{-20mm}
+\bcol{0.6\textwidth} 
+\vspace{-5mm}
+\begin{center}
+\includegraphics[height=0.52\textheight]{figs/estimated_species_richness_forest.png}
+\end{center}
+**Estimated species richness** in New Caledonia, restricted to the remaining forest cover in 2010
+\ecol
+\ecols
+
+### Tree species community map in New Caledonia 
+
+**Estimated $\beta$ diversity in New Caledonia**, restricted to the remaining forest cover in 2010
+
+\vspace{-2mm}
+\begin{center}
+\includegraphics[height=0.8\textheight]{figs/RGB.png}
+\end{center}
+
+### Classification of tree communities in New Caledonia
+
+\hspace{-3mm}
+\bcols
+\hspace{-6mm}
+\bcol{0.55\textwidth} 
+\includegraphics[height=0.75\textheight]{figs/color_group.png}
+\ecol
+
+\hspace{6mm}
+\bcol{0.5\textwidth} 
+\vspace{-6mm}
+**Method**: 
+
+- **t-SNE** (t-distributed Stochastic Neighbor
+Embedding) on **species' occurrence probabilities**.
+\vspace{1mm}
+- **Hierarchical Ascending Classification** to determine the number of species communities to be considered: **6 groups** 
+
+<!-- (determined by the first break on the dendrogram) -->
+\vspace{1mm}
+- **K-means classification** (K=6) performed on the coordinates of the t-SNE's three axes. 
+\vspace{1mm}
+- **Characterization of a group** by the 20 species with the highest and the 20 ones with the lowest average probability of occurrence on this group's pixels. 
+\vspace{1mm}
+
+\ecol
+\ecols
+
+
+# Fitting JSDMs in French Guiana 
+
+## Objectives of METRADICA (Task 3)
+
+Using JSDMs:
+
+- Test **trait-environmment** interactions for determining tree species distribution in French Guiana.
+- Assess species vulnerability to climate change (through contraction of species range).
+- Interpret species vulnerability to climate change in terms of functional traits.
+- Derive maps of $\alpha$ and $\beta$ diversity for French Guiana.
+- Identify refuge area for biodiversity under climate change (stable tree communities).
+
+<!-- ============================================ -->
+<!-- Methods -->
+<!-- ============================================ -->
+
+## Datasets
+
+### Datasets
+
+\bcols
+\bcol{0.5\textwidth}
+
+Three types of data-sets:
+\vspace{3mm}
+
+- Species occurrences on sites
+- Species trait database
+- Environmental database
+
+\ecol
+\bcol{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figs/datasets2.pdf}
+\ecol
+\ecols
+
+### Occurrences
+
+```{r inventories, include=FALSE}
+## Libraries
+library(readr)
+## Guyafor
+f <- "/home/clement/Documents/projet_METRADICA/data/Inventaires/202110_DonneesModeleMetradicaTout+Diam.csv"
+df <- readr::read_delim(f, delim=";")
+nplots_1 <- length(unique(paste0(df$Project, df$idPlot)))
+## Guyadiv
+f <- "/home/clement/Documents/projet_METRADICA/data/Inventaires/20211203_GuyaDiv.csv"
+df <-  readr::read_delim(f, delim=",")
+nplots_2 <- length(unique(paste0(df$Forest, df$Plot)))
+## Total
+nplots <- nplots_1 + nplots_2
+```
+
+\bcols
+\bcol{0.5\textwidth}
+
+- Forest plot inventories coming from several networks combined together
+\vspace{2mm}
+- Networks: Guyafor, Gentry, Habitat, Guyadiv
+\vspace{2mm}
+- Presence-absence data and abundances
+\vspace{2mm}
+- **`r nplots` forest plots**
+\vspace{2mm}
+- About **1700 tree species**, most of which are rare
+
+\ecol
+\bcol{0.6\textwidth}
+\includegraphics[width=\textwidth]{figs/inventories}
+\ecol
+\ecols
+
+### Traits
+
+- Large "soft" trait (WD, LSA, tree max height, etc.) databases from previous CEBA projects.
+\vspace{2mm}
+- Five additional mechanistic traits from Metradica project (Task 1 & 2 Marion Boisseaux and Daniela Krebber):
+\vspace{2mm}
+  - leaf water potential at which cells lose turgor (Ptlp), minimum leaf conductance (gmin), leaf saturated water content (LSWC), vein density (VLA), stomatal density (SD).
+  \vspace{2mm}
+  - 24 species, 672 trees, three sites with both hills and valleys spread on a precipitation gradient.
+
+### Environment
+
+**Variables:**
+
+- Topographic data (SRTM and LiDAR, Slope, aspect, roughness, solar radiation, TWI...)
+\vspace{2mm}
+- Soil data
+\vspace{2mm}
+- Distance to human infrastructures (roads, villages...)
+\vspace{2mm}
+- Climatic data ([Chelsa](https://chelsa-climate.org/)) in the present and the future
+\vspace{2mm}
+- **PAWD**: Plant available water deficit, more relevant index to characterize hydrological constraints in each site constructed by Salman Khan (Task 1)
+
+\vspace{2mm}
+
+**R package to gather these data: <https://ecology.ghislainv.fr/gecevar/>**
+
+<!-- - User friendly -->
+<!-- - Allows the user to specify the desired: -->
+<!--   * geographic area -->
+<!--   * resolution -->
+<!--   * spatial projection -->
+<!-- - Efficiency:  -->
+<!--   * R packages `terra` and `stars` for spatial objects -->
+<!--   * Software [`GRASS GIS`](https://grass.osgeo.org/) via `rgrass` R package and [`GDAL`](https://gdal.org/) via `rgdal` R package, used for reprojection, resampling and data computation.  -->
+
+## Study scales: biogeography and micro-environment
+
+### Scales: biogeography and micro-environment
+
+#### Country scale (French Guiana)
+
+\bcols
+\bcol{0.7\textwidth}
+
+- Scale $=$ FG, resolution $=$ ~1km
+\vspace{2mm}
+- Explicative and predictive model
+\vspace{2mm}
+- Two models
+  * Without traits
+    - Predictive model
+    - Present: distribution and co-occurrences of species
+    - Future: range contraction in the future: 
+    (i) species vulnerability to climate change
+    (ii) change in species composition
+    \vspace{2mm}
+  * With traits
+    - Explicative model: E $\times$ T
+    - Explaining species location (biogeography)
+    
+\ecol
+\bcol{0.3\textwidth}
+\centering
+\includegraphics[width=1.2\textwidth]{figs/locationParacou.jpg}
+\ecol
+\ecols
+
+    
+### Scales: biogeography and micro-environment
+
+#### Local scale: microtopography $\times$ traits
+\vspace{2mm}
+- Scale $=$ ~10km, resolution $=$ ~10m
+\vspace{2mm}
+- Redrawing of Paracou's plots into $10 \times 10$ m sites 
+\vspace{2mm}
+- Explicative model: E $\times$ T
+\vspace{2mm}
+- Environmental variable considered:
+\vspace{2mm}
+  * MNT at 10m: hills (_"terra firme"_) and valleys
+  * Topographic water deficit (TWI)
+  * Plant available water deficit (PAWD, Task 1) 
+
+\vspace{2mm}
+- Species traits considered: 
+\vspace{2mm}
+  * Water use traits (Task 1 & 2) available for only few species 
+  * Soft traits available for more species for fitting another JSDM considering mores species. 
+
+## Ecological interest 
+
+### Ecological interest 
+
+- Anticipating climate change effects on tropical forest in French Guiana
+\vspace{3mm}
+  - Massive tree mortality events and forest conversion ?
+  \vspace{2mm}
+  - Change in species composition?
+  
+\vspace{3mm}
+
+- Identification of refuge areas for conservation $\Rightarrow$ systematic conservation planning.
+
+# Planned publications
+
+- **Rcpp* package `jSDM` functionalities**: Main features and functionality of the R package `jSDM` and comparison with other approaches for the estimation of joint species distribution models. (Methods in Ecology and Evolution)
+
+- **Fitting JSDMs with species traits in French Guiana**: Identification of tree species vulnerable to climate change and of biodiversity refuge areas in French Guiana through the use of a joint species distribution model integrating trait-environment interactions.
+
+- **R package `gecevar` to download environmental and climatic data** : facilitate and automate the extraction and formatting of environmental and climatic data required for the adjustment of JSDMs.
+
+- **Improve convergence of JSDMs including latent variables** : Diagnosis of latent axes and estimation of their number in generalized linear latent variable models for joint species distribution modeling (first author: Frederic Gosselin).
+
+### References {.allowframebreaks}
+
