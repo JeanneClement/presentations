@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
   collapse=TRUE,
   comment="#>",
   highlight=TRUE,
-  eval=FALSE
+  eval=TRUE
 )
 ```
 
@@ -32,7 +32,7 @@ We want to fit JSDM in French Guiana.
 
 ## jSDM R package
 
-```{r install-jSDM}
+```{r install-jSDM, eval=FALSE}
 # mail vendredi prévoir installer jSDM et gecevar
 install.packages("jSDM")
 # Rtools
@@ -40,7 +40,7 @@ install.packages("jSDM")
 
 ## gecevar R package
 
-```{r install-gecevar}
+```{r install-gecevar, eval=FALSE}
 devtools::install_github("ghislainv/gecevar")
 # grass, gdal, osmctools
 ```
@@ -48,7 +48,7 @@ devtools::install_github("ghislainv/gecevar")
 
 # Load librairies
 
-```{r load-librairies, echo=FALSE}
+```{r load-librairies, echo=FALSE, eval=FALSE}
 library(ade4)
 library(parallel)
 library(doParallel)
@@ -61,47 +61,66 @@ library(jSDM)
 
 ## Forest inventory 
 
-National forest inventories carried out on $753$ sites on the island of French Guiana are available, listing the presence or absence of $555$ plant species on each of these sites between 1994 and 1996.
-We use these forest inventories to calculate a matrix indicating the presence by a $1$ and the absence by a $0$ of the species at each site by removing observations for which the species is not identified. This matrix therefore records the occurrences of $483$ species at $751$ sites.
+Forest inventories carried out in French Guiana, in the context of Guyafor project are available.
+We use these forest inventories to calculate a matrix indicating the presence by a $1$ and the absence by a $0$ of the species at each site by removing observations for which the species is not identified and rare species with less than 5 observations on all sites. This matrix therefore records the occurrences of $290$ species at $36$ sites.
 
 ```{r forest-inventory}
-
 library(readr)
 ## Guyafor
 f <- "/home/clement/Documents/projet_METRADICA/data/Inventaires/202110_DonneesModeleMetradicaTout+Diam.csv"
 df <- readr::read_delim(f, delim=";")
-nplots_1 <- length(unique(paste0(df$Project, df$idPlot)))
-## Guyadiv
-f <- "/home/clement/Documents/projet_METRADICA/data/Inventaires/20211203_GuyaDiv.csv"
-df <-  readr::read_delim(f, delim=",")
+df <- df[df$Project=="Guyafor",]
+nplots <- length(unique(df$idPlot))
+# Remove indeterminate taxa 
+df <- df[-grep("Indet", df$Taxon), ]
+# Remove taxa not defined at species but subspecies level
+df <- df[-grep("subsp.", df$Taxon), ]
+nsp <- length(unique(df$Taxon))
+
 # forest inventory
-trees <- trees[-which(is.na(trees$sp)),]
-trees$plot <- as.character(trees$plot)
-plots <- unique(trees$plot)
-nplot <- length(plots)
-sp <- unique(trees$taxize)
-nsp <- length(sp)
+trees <- df
 # presence/absence of each species on each plot
-nplot <- length(unique(trees$plot))
-species <- unique(trees$taxize)
+nplot <- length(unique(trees$idPlot))
+species <- unique(trees$Taxon)
 nsp <- length(species)
 # presence/absence of each species on each plot
 PA <- matrix(0, nplot, nsp)
-rownames(PA) <- paste(sort(as.numeric(unique(trees$plot))))
+rownames(PA) <- paste(sort(as.numeric(unique(trees$idPlot))))
 colnames(PA) <- paste0("sp_", 1:nsp)
+#colnames(PA) <- unique(trees$Taxon)
 for (i in 1:nplot){    
   for (j in 1:nsp){
-    idx <- which(trees$taxize == species[j])
-    PA[paste(trees$plot[idx]),j] <- 1 
+    idx <- which(trees$Taxon == species[j])
+    PA[paste(trees$idPlot[idx]),j] <- 1 
   }
 }
+# Remove very rare species 
+rare_species <- which(colSums(PA)<=5)
+trees <- trees[!(trees$Taxon %in% names(rare_species)),]
+PA <- PA[ ,which(colSums(PA)>5)]
+nsp <- ncol(PA)
+nplot <- nrow(PA)
+```
+
+We represent the presence-absence matrix obtained for the first 20 species 
+
+```{r PA-table, include=FALSE, eval=FALSE}
+knitr::kable(PA[,1:20], digits=1, booktabs=TRUE, align = 'c') %>%
+  kableExtra::kable_styling(latex_options=c("HOLD_position","striped"), full_width=FALSE) %>% 
+  kableExtra::save_kable(file="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_cache/PA_FG.png")
+```
+
+\cr 
+\cr
+```{r FG-PA, echo=FALSE, out.width=900, eval=TRUE}
+knitr::include_graphics("jSDM_tutorial_cache/PA_FG.png")
 ```
 
 ## Current environmental variables
 
 We use the function [`get_chelsa_current`](https://ecology.ghislainv.fr/gecevar/reference/get_chelsa_current.html) from the R package [`gecevar`](https://ecology.ghislainv.fr/gecevar) to download a set of climatic data for French Guiana from the website: \url{chelsa-climate.org}.  
 
-```{r download-climate-data, eval=FALSE}
+```{r download-climate-data}
 library(gecevar)
 name <- "French Guiana"
 epsg <- 2972
@@ -160,7 +179,7 @@ knitr::kable(dataset, row.names=F, booktabs=TRUE, align = 'l', escape=FALSE,
   kableExtra::kable_styling(latex_options=c("HOLD_position","striped"), full_width=FALSE)
 ```
 
-Among the climatic data downloaded, concerning the whole island of French Guiana at present (interpolations of representative observed data from the years 1960-1990).
+Among the climatic data downloaded, concerning the whole French Guiana territoty at present (interpolations of representative observed data from the years 1960-1990).
 We choose to use the following variables because they have an ecological meaning which makes them easily interpretable and are little correlated between them according to the article @Vieilledent2013 : 
 
 - **temp**: the average annual temperature ($^\circ C\times 10$).
@@ -172,6 +191,7 @@ We choose to use the following variables because they have an ecological meaning
 We consider also the quadratic effects of these climate variables to perform a quadratic regression, which is more suitable for fitting a niche model than a linear regression. 
 
 ```{r current-environmental-variables}
+
 # get interesting covariates among the climatic variables downloaded  
 clim_var <- terra::rast(clim_path,
                         lyrs=c("bio1", "bio4", "bio12", "bio15", "cwd_penman"))
@@ -188,26 +208,40 @@ terra::plot(clim_var, legend=TRUE)
 title("Current bioclimatic variables", outer=TRUE, cex=0.8)
 
 # spatial points of each plot
-coords <- unique(cbind(trees$long,trees$lat, as.numeric(trees$plot)))
+coords <- unique(cbind(as.numeric(trees$Xutm),
+                       as.numeric(trees$Yutm),
+                       as.numeric(trees$idPlot),
+                       trees$SourceCoord, trees$UTMZone))
+colnames(coords) <- c("Xutm","Yutm","plot", "sourceCoord", "UTMZone")
+coords_plot <- coords[coords[,"sourceCoord"]=="plot",]
+coords_tree <- data.frame(coords[coords[,"sourceCoord"]=="tree",])
+coords_tree <- coords_tree[!(coords_tree[,"plot"] %in% coords_plot[,"plot"]), ]
+sites <- unique(coords_tree[,"plot"])
+coords <- coords_plot 
+for(i in 1:length(sites)){
+mat <- coords_tree[coords_tree$plot==sites[i], ]
+coords <- rbind(coords, mat[which.min(mat$Xutm),])
+}
+coords$plot <- as.numeric(coords$plot)
+coords$Xutm <- as.numeric(coords$Xutm)
+coords$Yutm <- as.numeric(coords$Yutm)
 coords <- coords[sort(coords[,3], index.return=TRUE)$ix,]
-longlat <- terra::vect(coords[,1:2], crs="+proj=longlat +ellps=clrk66")
-
-# lat long to UTM38S projection 
-xy <- terra::project(longlat, proj)
+# UTM22N coordinates system
+xy <- terra::vect(coords[,1:2], crs=proj, geom=c("Xutm", "Yutm"))
 
 # Add squared data
-clim_var2 <- c(clim_var_mada, clim_var_mada^2)
+clim_var2 <- c(clim_var, clim_var^2)
 names(clim_var2) <- c(names(clim_var), paste0(names(clim_var),
                                               rep("2", dim(clim_var)[3])))
 
 
 # extract climatic data on each plot
-clim2 <-  terra::extract(clim_var2,xy)
-pos <- coords
-colnames(pos) <- c("long","lat","site")
+clim2 <-  terra::extract(clim_var2, xy)
+pos <- coords[,1:3]
+colnames(pos) <- c("Xutm","Yutm","plot")
 
 # Add squared data
-data_clim2 <- data.frame(cbind(clim2[,-1],pos))
+data_clim2 <- data.frame(cbind(clim2[,-1], pos))
 nparam <- ncol(data_clim2) -3
 library(tidyverse)
 
@@ -215,14 +249,14 @@ library(tidyverse)
 scaled_data_clim2 <- scale(data_clim2[,1:nparam])
 means <- attr(scaled_data_clim2,"scaled:center")
 sds <- attr(scaled_data_clim2,"scaled:scale")
-scaled_data_clim2 <- as_tibble(cbind(site=data_clim2$site,
+scaled_data_clim2 <- as_tibble(cbind(plot=data_clim2$plot,
                                      scaled_data_clim2,
-                                     lat=data_clim2$lat, 
-                                     long=data_clim2$long))
+                                     Xutm=data_clim2$Xutm, 
+                                     Yutm=data_clim2$Yutm))
 
 ## Design matrix
 X <- data.frame(intercept=rep(1,nplot),
-                dplyr::select(scaled_data_clim2,-lat,-long, -site))
+                dplyr::select(scaled_data_clim2,-Xutm,-Yutm, -plot))
 np <- ncol(X)
 
 # save raster in .tif format
@@ -231,11 +265,11 @@ np <- ncol(X)
 scaled_clim_var <- (clim_var2-means)/sds
 names(scaled_clim_var) <- names(clim_var2)
 terra::writeRaster(scaled_clim_var,
-                   "~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/scaled_clim.tif",
+                   "~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_cache/scaled_clim.tif",
                    gdal=c("COMPRESS=LZW", "PREDICTOR=2"), overwrite=TRUE)
 ```
 
-```{r current-environmental-variables2, echo=FALSE, out.width=800, eval=TRUE}
+```{r current-environmental-variables2, echo=FALSE, out.width=800, eval=FALSE}
 knitr::include_graphics("jSDM_tutorial_files/figure-html/current-environmental-variables-1.png")
 ```
 
@@ -343,7 +377,7 @@ knitr::kable(results, row.names=F, digits=1, booktabs=TRUE, align = 'c') %>%
 
 \cr 
 \cr
-```{r FG-fitting-mod, echo=FALSE, out.width=900, eval=TRUE}
+```{r FG-fitting-mod, echo=FALSE, out.width=900, eval=FALSE}
 knitr::include_graphics("jSDM_tutorial_files/mod_FG.png")
 ```
 
@@ -458,7 +492,7 @@ hist(mod$probit_theta_latent,col="light blue",  main = "probit(theta) estimated"
 hist(mod$theta_latent, breaks=pretty, col="light blue", main = "theta estimated")
 ```
 
-```{r results-FG2, echo=FALSE, out.width=700, eval=TRUE}
+```{r results-FG2, echo=FALSE, out.width=700, eval=FALSE}
 knitr::include_graphics(paste0("jSDM_tutorial_files/figure-html/results-FG-"
                                , 1:18, ".png"))
 ```
@@ -503,7 +537,7 @@ terra::plot(theta_latent_sp, y=1, pch=20, cex=1.1,
             type="interval", breaks=cuts)
 ```
 
-```{r proba-representation2, echo=FALSE,  fig.show = "hold", out.width = "50%",  fig.align = "default", eval=TRUE}
+```{r proba-representation2, echo=FALSE,  fig.show = "hold", out.width = "50%",  fig.align = "default", eval=FALSE}
 knitr::include_graphics(c("jSDM_tutorial_files/figure-html/proba_representation-1.png","jSDM_tutorial_files/figure-html/proba_representation-2.png"))
 ```
 
@@ -556,11 +590,11 @@ plot(species_richness_obs$species_richness_obs,
 abline(a=0,b=1,col='red')
 ```
 
-```{r species-richness-representation2, echo=FALSE, fig.show = "hold", out.width = "50%", fig.align = "default", eval=TRUE}
+```{r species-richness-representation2, echo=FALSE, fig.show = "hold", out.width = "50%", fig.align = "default", eval=FALSE}
 knitr::include_graphics(c("jSDM_tutorial_files/figure-html/species-richness-representation-2.png","jSDM_tutorial_files/figure-html/species-richness-representation-1.png"))
 ```
 
-```{r species-richness-representation3, echo=FALSE, fig.show = "hold", out.width = "50%", fig.align = "center", eval=TRUE}
+```{r species-richness-representation3, echo=FALSE, fig.show = "hold", out.width = "50%", fig.align = "center", eval=FALSE}
 knitr::include_graphics("jSDM_tutorial_files/figure-html/species-richness-representation-3.png")
 ```
 
@@ -592,48 +626,10 @@ write.csv(R, file ="~/Documents/presentations/workshop-Metradica-March2023/jSDM_
 
 We represent the full residual correlation matrix and the residual correlation matrix witH only "significant" correlations, whose $ 95 \%$ HPD interval over the MCMC samples does not contain zero.
 
-```{r residual-correlation}
+```{r plot-residual-correlation}
 plot_residual_cor(mod)
 plot_residual_cor(mod, prob=0.95)
 ```
-
-We plot the top 50 estimated residual correlations between species based on their number of observed occurrences and environmental preferences. 
-
-```{r plot-associations, echo=TRUE, fig.dim=c(6,6)}
-load("~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_cache/R.csv")
-# Forest inventory 
-# Residual correlation matrix R
-colnames(R) <- rownames(R) <- make.names(params_species$species)
-R <- as.matrix(R)
-library(viridis)
-jSDM::plot_associations(R, circleBreak=TRUE, occ=PA, top=50,
-                        main="Species-species association sorted after their frequency",
-                        cols_association=viridis::viridis(10),
-                        cols_occurrence=viridis::magma(10),
-                        species_order="frequency")
-# Average of MCMC samples of species effect beta except the intercept
-effects = params_species[,grep("beta", colnames(params_species))[-1]]
-np <- ncol(effects)
-# Add absolute quadratic and linear effects of each environmental variable
-effects <- abs(effects[,1:(np/2)]) + abs(effects[,(np/2 +1):np])
-colnames(effects) <-  gsub("beta_", "",colnames(effects))
-jSDM::plot_associations(R, env_effect=effects, top=50,
-                        main="Species-species association sorted after their main environmental effect",
-                        cols_association=viridis::viridis(10),
-                        species_order="main env_effect")
-```
-
-```{r plot-associations2, echo=FALSE, out.width=500, out.height=555, eval=TRUE}
-knitr::include_graphics("jSDM_tutorial_files/figure-html/plot-associations-1.png")
-```
-
-The figure above shows the correlations between species, with the 483 species sorted according to the number of sites where they occur out of the 751 inventoried.
-
-```{r plot-associations3,  echo=FALSE, out.width=500, out.height=555, eval=TRUE}
-knitr::include_graphics("jSDM_tutorial_files/figure-html/plot-associations-2.png")
-```
-
-The figure above shows the same covariance structure but with the species sorted according to their largest environmental coefficients ($\beta$) (the outer ring shows the distribution of environmental effect for species within the sample).
 
 This representation of associations between species allows us to observe the positive or negative correlations between species which can be interpreted in terms of positive or negative influence of the presence of a species on the probability of occurrence of another.
 
