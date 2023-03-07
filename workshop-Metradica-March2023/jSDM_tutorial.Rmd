@@ -49,12 +49,11 @@ devtools::install_github("ghislainv/gecevar")
 # Load librairies
 
 ```{r load-librairies, echo=FALSE, eval=FALSE}
-library(ade4)
-library(parallel)
-library(doParallel)
 library(terra)
 library(sf)
 library(jSDM)
+library(gecevar)
+
 ```
 
 # Datasets
@@ -106,6 +105,7 @@ We represent the presence-absence matrix obtained for the first 20 species
 
 ```{r PA-table, include=FALSE, eval=FALSE}
 colnames(PA) <- paste0("sp_", 1:nsp)
+write.csv(PA, file ="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/PA.csv")
 knitr::kable(PA[,1:20], digits=1, booktabs=TRUE, align = 'c') %>%
   kableExtra::kable_styling(latex_options=c("HOLD_position","striped"), full_width=FALSE) %>% 
   kableExtra::save_kable(file="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/PA_FG.png")
@@ -138,7 +138,10 @@ Tr <- Tr[, c(1,17,2:16)]
 ```
 
 ```{r Tr-table, include=FALSE, eval=FALSE}
-knitr::kable(Tr[,c("Name", "Type", "Gmin", "FvFm", "TLP", "SLA")], digits=2, booktabs=TRUE, align = 'l') %>%
+Tr_noname <- Tr
+Tr_noname$Name <- paste0("sp_", 1:nrow(Tr))
+write.csv(Tr_noname[,c("Name", "Type", "Gmin", "FvFm", "TLP", "SLA")], file ="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/PA_Tr.csv") 
+knitr::kable(Tr_noname[,c("Name", "Type", "Gmin", "FvFm", "TLP", "SLA")], digits=2, booktabs=TRUE, align = 'l') %>%
   kableExtra::kable_styling(latex_options=c("HOLD_position","striped"), full_width=FALSE) %>%  kableExtra::save_kable(file="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/Tr_FG.png")
 ```
 
@@ -294,6 +297,7 @@ scaled_data_clim2 <- as_tibble(cbind(plot=data_clim2$plot,
                                      scaled_data_clim2,
                                      Xutm=data_clim2$Xutm, 
                                      Yutm=data_clim2$Yutm))
+write.csv(scaled_data_clim2, file ="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/scaled_clim.csv")
 
 ## Design matrix
 X <- data.frame(intercept=rep(1,nplot),
@@ -484,14 +488,18 @@ We fit a binomial joint species distribution model, including **two latent varia
 ```{r fit-jSDM-FG-data-Tr, echo=TRUE, eval=FALSE}
 PA_Tr <- PA[ ,colnames(PA) %in% Tr$Name]
 colnames(PA_Tr) <- paste0("sp_", 1:ncol(PA_Tr))
+write.csv(PA_Tr, file ="~/Documents/presentations/workshop-Metradica-March2023/jSDM_tutorial_files/PA_Tr.csv") 
 # Fitting JSDM from French Guiana datasets including traits
 T1<- Sys.time()
 mod_Tr <- jSDM::jSDM_binomial_probit(
   # Response variable 
   presence_data = PA_Tr, 
   # Explanatory variables 
-  site_formula = ~ temp + prec + sais_temp + sais_prec + cwd + temp2 + prec2 + sais_temp2 + sais_prec2 + cwd2,   
+  site_formula = ~ temp + prec + sais_temp + sais_prec + cwd + temp2 + prec2 + sais_temp2 +   sais_prec2 + cwd2,   
   site_data=scaled_data_clim2, 
+# Only one interaction 
+#  trait_formula = ~ cwd:Gmin,
+# All interactions
   trait_formula = ~.,
   trait_data = data.frame(scale(Tr[,c("Gmin", "FvFm", "TLP", "SLA")])), 
   n_latent=2,
