@@ -1,0 +1,627 @@
+---
+classoption: table, dvipsname
+colorlinks: yes
+fontsize: 10pt
+link-citations: yes
+linkcolor: Maroon
+output:
+  beamer_presentation:
+    includes:
+      after_body: doc_suffix.tex
+      before_body: doc_prefix.tex
+      in_header: header.tex
+    slide_level: 3
+urlcolor: Maroon
+bibliography:  ref_CSI.bib
+biblio-style: "apalike"
+---
+```{r options, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(dplyr)
+opts_chunk$set(echo=FALSE, cache=FALSE,
+               #results="hide", 
+               warning=FALSE,
+               message=FALSE, highlight=TRUE,
+               fig.align="center",
+               eval=FALSE,
+               tidy=FALSE)
+options(knitr.kable.NA="-")
+```
+
+### Plan
+\vspace{0.4cm}
+\begin{columns}[c]
+    \begin{column}{0.55\textwidth}
+      \tableofcontents[sections=1,currentsubsection]
+      \vspace{0.5cm}
+      \tableofcontents[sections=2,currentsubsection]
+      \vspace{0.5cm}
+       \tableofcontents[sections=3,currentsubsection]
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \vspace{0.5cm}
+      \tableofcontents[sections=4,currentsubsection]
+    \end{column}
+\end{columns}
+
+# Contexte scientifique et objectifs de la thèse
+
+### Avantages des JSDMs par rapport aux SDMs
+
+- Utiliser l'information apportée par l'ensemble des espèces pour l'estimation des paramètres liés aux sites
+
+- Prendre en compte les interactions entre les espèces 
+\begin{center}
+\includegraphics[width=0.55\textwidth]{figs/allfrogs1.jpg}
+\end{center}
+
+\vspace{0.1cm}
+
+- Peuvent être utilisés pour expliquer/prédire la richesse spécifique des sites et produire différentes cartes de biodiversité
+\begin{center}
+\includegraphics[width=0.6\textwidth]{figs/SDM.jpg}
+\end{center}
+
+### Librairies existantes pour ajuster des JSDMs et leur limitations 
+
+Les JSDMs ont connu une expansion rapide ces dernières années avec le développement de plusieurs librairies permettant d’ajuster ce type de modèles suivant différentes approches statistiques comme les packages R :
+
+- `Hmsc` [@Ovaskainen2017]
+- `gjam` [@Clark2017]
+- `BayesComm` [@Golding2015]
+- `boral` [@Warton2015]
+- `s-jSDM` [@Pichler2020]. 
+
+Cependant, ces librairies ne permettent pas toutes :
+
+- le traitement de jeux de données conséquents en un temps raisonnable 
+- l’extrapolation entre les sites d’observation pour l’obtention de cartes prédictives 
+- la gestion de données de présences seules (typique des données d’herbier par exemple) ou de données manquantes.
+ 
+# Fonctionnalités et contenu actuels du package `jSDM`
+
+## Définition des JSDMs envisagés
+
+### Données utilisées 
+
+
+- Variable réponse : $\blue{Y}=\{\blue{y_{ij}}\}^{i=1,\ldots,I}_{j=1,\ldots,J}$ des données de présence/absence ou d'abondance des espèces.
+\vspace{0.3cm}
+- Variables explicatives : 
+\vspace{0.3cm}
+  - $\blue{X}=(\blue{X_i})_{i=1,\ldots,I}$ avec $\blue{X_i}=(\blue{x_{i0}},\blue{x_{i1}},\ldots,\blue{x_{ip}})\in \mathbb{R}^p$ où $p$ est le nombre de variables bioclimatiques considérées pour chaque site et $\forall i, \blue{x_{i0}}=1$.
+\vspace{0.3cm}
+
+  - $\blue{T}=(\blue{T_j})_{j=1,\ldots,J}$ avec $\blue{T_j}=(\blue{t_{j0}},\blue{t_{j1}},\ldots,\blue{t_{jn}})\in \mathbb{R}^n$ où $n$ est le nombre de traits spécifiques considérés et $\forall j, \blue{t_{j0}}=1$.
+\vspace{0.3cm}
+\pause
+- Avantages d'intégrer des traits fonctionnels dans le modèle [@Warton2015; @Ovaskainen2017] :
+  - Interpréter les différences de vulnérabilité des espèces face au changement climatique en fonction de leurs traits spécifiques.
+  - Approche d'écologie fonctionnelle particulièrement utile pour les espèces rares pour lesquelles on dispose de peu de données d’occurrence mais dont les traits spécifiques peuvent être mesurés même à partir de peu d’individus.
+
+
+### Définition du modèle 
+
+On définit le modèle à variables latentes suivant à partir de celui utilisé dans l'article @Warton2015 :  
+
+- $\blue{y_{ij}} \ | \ \red{W_i}, \red{\alpha_i}, \red{\beta_j}, \red{\lambda_j} \sim \mathcal{B}inomial(n_i,\theta_{ij})$, pour des données de présence/absence où $n_i$  est le nombre de visites du site $i$ et $\theta_{ij}$ la probabilité de présence de l'espèce $j$ sur le site $i$,
+
+- $\blue{y_{ij}} \ | \ \red{W_i}, \red{\alpha_i}, \red{\beta_j}, \red{\lambda_j} \sim \mathcal{P}oisson(\theta_{ij})$, pour des données d'abondances avec, 
+
+$$\text{g}(\theta_{ij}) =\red{\alpha_i} + \blue{X_i}\red{\beta_j} + \red{W_i\lambda_j}$$
+
+- $g : \ ]0,1[ \ \rightarrow \ ]-\infty, +\infty[$ est une fonction de lien (probit, logit ou log). 
+
+- $\red{\alpha_i}$ : effet site pour le site $i$ fixe ou aléatoire tel que $\red{\alpha_i} \sim \mathcal{N}(0,\red{V_{\alpha}}) \ iid$      
+- $\red{W_i}$: variables latentes pour le site $i$,
+
+- $\red{\lambda_j}$ : facteur latent pour l'espèce $j$,
+
+### Définition du modèle 
+
+- $\red{\beta_j}=(\red{\beta_{j0}}, \red{\beta_{j1}},\ldots,\red{\beta_{jp}})$: l'intercept et l'effet de l'espèce $j$ tel que,
+\vspace{0.3cm}
+  - En l'absence de données sur les traits spécifiques :  
+  $\red{\beta_j} \sim \mathcal{N}_{p+1}(\mu_{\beta},V_{\beta})$ pour $j=0,\ldots,J$. 
+\vspace{0.3cm}
+  - Si des données sur les traits spécifiques sont fournies : $\red{\beta_j} \sim \mathcal{N}_{p+1}(\mu_{\beta_j},V_{\beta})$ avec $\mu_{\beta_{jk}} = \sum_{r=0}^{n} \blue{t_{jr}}.\red{\gamma_{rk}}$ pour $k=0,\ldots,p$,    
+  où $\red{\gamma_{rk}} \sim \mathcal{N}(\mu_{\gamma_{rk}},V_{\gamma_{rk}})$ en tant que distribution *a priori*.
+
+### Complexité du modèle 
+
+\bcols
+\bcol{0.6\textwidth}
+\begin{itemize}
+\item Modèle linéaire généralisé : variable réponse binaire et fonction de lien probit, logit ou log.
+\vspace{0.2cm}
+\item Multivarié : paramètres $\red{\alpha_i}$ pour les sites et $\red{\beta_j, \lambda_j}$ pour les espèces.
+\vspace{0.2cm}
+\item Modèle mixte avec effets sites aléatoires ou fixes et effets espèces fixes.
+\vspace{0.2cm}
+\item Variables latentes : $\red{W_i}$ prédicteurs non mesurés ou non mesurables $+$ principaux axes de covariation entre les taxons.
+\end{itemize}
+\ecol
+\bcol{0.4\textwidth}
+\includegraphics[width=1.1\textwidth]{figs/DAG-jSDM-rand.png} 
+\ecol
+\ecols
+
+### Contraintes d'identifiabilité 
+
+La complexité du modèle nous oblige à introduire les contraintes suivantes (cf @Warton2015) afin de le rendre identifiable :
+$$\begin{aligned}
+& \begin{cases}
+\red{\lambda_{jl}}=0 & \text{si } l > j \\
+\red{\lambda_{jl}}>0  &  \text{si } l=j, \\
+\end{cases} \\
+&\text{pour } j=1,\ldots,J \text{ et } l=1,\ldots,q.
+\end{aligned}$$  
+
+La matrice $\Lambda := (\lambda_{jl})_{j=1,\ldots,J}^{l=1,\ldots,q}$ est ainsi supposée être triangulaire inférieure et strictement positive sur la diagonale.  
+
+## Méthodes d’inférence bayésienne 
+### Méthodes d’inférence bayésiennes 
+
+Présentation détaillée accompagnée de démonstrations dans la vignette \href{https://ecology.ghislainv.fr/jSDM/articles/proof.html}{Bayesian inference methods}.
+
+On détermine une distribution *a priori* pour chacun des paramètres du modèle afin de pouvoir utiliser une méthodes d’inférence bayésienne: **l'échantillonnage de Gibbs** permettant d'obtenir une réalisation de $\Theta=(\theta_1,\ldots,\theta_n)$ selon la distribution jointe *a posteriori* $p(\theta_1,\ldots,\theta_n|x)$.  
+
+L'implémentation d'un échantillonneur de Gibbs nécessite la connaissance des distributions *a posteriori* de chacun des paramètres conditionnellement aux autres paramètres du modèle. 
+
+
+### Méthodes d’inférence selon la fonction de lien choisie
+
+- Modèle probit : échantillonneur de Gibbs et formules des priors conjugués pour expliciter les distributions conditionnelles *a posteriori*.
+
+\vspace{0.2cm}
+
+- Modèles logit et log : échantillonneur de Gibbs et algorithme de Metropolis adaptatif pour générer les paramètres selon un estimation de leurs distributions conditionnelles *a posteriori*.
+
+### Implémentation d'un échantillonneur de Gibbs en C++ 
+
+- Utilise des tirages aléatoires pour générer selon les lois conditionnelles. 
+
+- Nécessite des calculs matriciels dans le cas où on utilise une approche d'inférence bayesienne avec des priors conjugués.
+
+- Implique boucles imbriquées sur les $N_{Gibbs}$ itérations (MCMC) et le nombre de paramètres (Gibbs sampler).
+
+`Rcpp` (C++), `RcppGSL` (tirages aléatoires) et `RcppArmadillo` (calcul matriciel) sont utiles pour implémenter un échantillonneur de Gibbs performant.  
+
+### Package R `jSDM`
+\vspace{0.1cm}
+\bcols
+\bcol{0.6\textwidth}
+\includegraphics[width=1.0\textwidth]{figs/jSDM-Website-09-22.png}
+\ecol
+\bcol{0.4\textwidth}
+
+\begin{itemize}
+\item \url{https://ecology.ghislainv.fr/jSDM}
+\vspace{0.4cm}
+\item Construit à l'aide des packages \texttt{Rcpp}, \texttt{RcppGSL} et \texttt{RcppArmadillo}. 
+\vspace{0.4cm}
+\item Vignettes et documentation détaillées pour faciliter son utilisation 
+\end{itemize}
+\ecol
+\ecols
+
+## Comparaison avec les packages `boral` et `Hmsc`
+
+### Comparaison des résultats obtenus avec ceux des packages `boral` et `Hmsc`
+
+#### Packages R `boral` et `Hmsc`
+
+- `boral`  [@Hui2016] associe R et `JAGS` (Just Another Gibbs Sampler: <http://mcmc-jags.sourceforge.net/>) un programme de simulation à partir de modèles hiérarchiques bayésiens, implémenté en C++ permettant d'ajuster des JSDM tilisé dans l'article @Warton2015. 
+\vspace{0.5cm}
+- `Hmsc`  [@Ovaskainen2017] implémenté intégralement en R, comparé à d'autres librairies permettant d'ajuster des JSDMs dont `boral` dans l'article @Wilkinson2019.
+
+###
+#### Jeux de données utilisés
+\vspace{0.3cm}
+\begin{center}
+\includegraphics[height=0.75\textheight]{figs/datasets.png}
+\end{center}
+\vspace{0.3cm}
+
+###
+\vspace{0.1cm}
+#### Temps de calcul nécessaire à l'ajustement des modèles et déviances associées :
+```{r time-deviance-boral-Hmsc-jSDM, echo=FALSE, eval=TRUE, include=FALSE, out.width=900}
+library(dplyr)
+load("~/Documents/jSDM/vignettes/jSDM_boral_files/jSDM-boral-comparison.rda")
+result <- data.frame(matrix(NA,9,7),row.names=c("Temps de calcul boral (secondes)","Temps de calcul jSDM (secondes) ", "Déviance boral", "Déviance jSDM ", "Temps de calcul Hmsc (secondes)","Temps de calcul jSDM (secondes)", "Déviance Hmsc", "Déviance jSDM",""))
+colnames(result) <- c("Simulation","Moustiques","Eucalyptus","Grenouilles","Champignons","Oiseaux","Mites")  
+result[1,]=c(T_boral_sim, T_boral_Mosquitos, T_boral_Eucalypts, T_boral_Frogs, T_boral_Fungi,
+             T_boral_Birds, T_boral_Mites)
+result[2,]=c(T_jSDM_sim, T_jSDM_Mosquitos, T_jSDM_Eucalypts, T_jSDM_Frogs,T_jSDM_Fungi,
+             T_jSDM_Birds, T_jSDM_Mites)
+result[3,] <- c(Deviance_boral_sim, Deviance_boral_Mosquitos, Deviance_boral_Eucalypts, 
+                Deviance_boral_Frogs, Deviance_boral_Fungi,
+                Deviance_boral_Birds, Deviance_boral_Mites)
+result[4,] <- c(Deviance_jSDM_sim,Deviance_jSDM_Mosquitos, 
+                Deviance_jSDM_Eucalypts,Deviance_jSDM_Frogs, 
+                Deviance_jSDM_Fungi, Deviance_jSDM_Birds,
+                Deviance_jSDM_Mites)
+load("~/Documents/jSDM/vignettes/jSDM_Hmsc_files/jSDM-Hmsc-comparison.rda")
+result[5,]=c(T_Hmsc_sim, T_Hmsc_Mosquitos, T_Hmsc_Eucalypts, T_Hmsc_Frogs, T_Hmsc_Fungi,
+             T_Hmsc_Birds, T_Hmsc_Mites)
+result[6,]=c(T_jSDM_sim, T_jSDM_Mosquitos, T_jSDM_Eucalypts, T_jSDM_Frogs,T_jSDM_Fungi,
+             T_jSDM_Birds, T_jSDM_Mites)
+result[7,] <- c(Deviance_Hmsc_sim, Deviance_Hmsc_Mosquitos, Deviance_Hmsc_Eucalypts, 
+                Deviance_Hmsc_Frogs, Deviance_Hmsc_Fungi,
+                Deviance_Hmsc_Birds, Deviance_Hmsc_Mites)
+result[8,] <- c(Deviance_jSDM_sim,Deviance_jSDM_Mosquitos, 
+                Deviance_jSDM_Eucalypts,Deviance_jSDM_Frogs, 
+                Deviance_jSDM_Fungi, Deviance_jSDM_Birds,
+                Deviance_jSDM_Mites)
+min_ratio <- round(min(as.numeric(result[1,]/result[2,])))
+max_ratio <- round(max(as.numeric(result[1,]/result[2,])))
+min_ratio_H <- round(min(as.numeric(result[5,]/result[6,])))
+max_ratio_H <- round(max(as.numeric(result[5,]/result[6,])))
+```
+\vspace{0.05cm}  
+\begin{center}
+\includegraphics[height=0.78\textheight]{figs/comparaison-jSDM-Hmsc-boral.png}
+\end{center}
+\vspace{0.1cm}
+`jSDM` est **`r min_ratio` à `r max_ratio`** fois plus rapide que `boral`
+et **`r min_ratio_H` à `r max_ratio_H`**  fois plus que `Hmsc`.
+
+\vspace{0.5cm}
+
+###
+#### Root-mean-square error 
+\vspace{0.1cm}
+Calculé pour $\theta_{ij}$ sur jeux de données simulés tel que $RMSE=\sqrt{\dfrac{1}{IJ}\sum\limits_{1 \leq i \leq I , \   1 \leq j\leq I}\left(\theta_{ij}-\widehat{\theta_{ij}}\right)^2}$ : 
+\vspace{0.5cm}
+
+```{r RMSE, echo=FALSE, eval=TRUE}
+result <- data.frame(matrix(NA,1,4),row.names=  c("RMSE"))
+colnames(result) <- c("boral","jSDM ","Hmsc","jSDM")
+load("~/Documents/jSDM/vignettes/jSDM_boral_files/jSDM-boral-comparison.rda")
+result[,1] <- RMSE_boral_sim
+result[,2] <- RMSE_jSDM_sim
+load("~/Documents/jSDM/vignettes/jSDM_Hmsc_files/jSDM-Hmsc-comparison.rda")
+result[,3] <- RMSE_Hmsc_sim
+result[,4] <- RMSE_jSDM_sim
+kable(result, digits=3, booktabs=TRUE) %>%
+  kable_styling(bootstrap_options = "striped", 
+                latex_options= c("HOLD_position","striped"),
+                full_width = FALSE) %>%
+  row_spec(1, hline_after=FALSE) %>%
+  add_header_above(c(" ", "Modèle avec effet site" = 2, "Modèle sans effet site" = 2))
+```
+
+\vspace{0.5cm}
+
+Les RMSE associés à `jSDM` sont légèrement inférieures à ceux de `boral` et `Hmsc`, les résultats obtenus avec `jSDM` sont donc un peu plus proches de ceux attendus que les paramètres estimés avec `boral` et `Hmsc`.
+
+# Obtention de cartes de communauté à l'échelle du territoire  
+
+## Évolution de la biodiversité à Madagascar avec les changements climatiques 
+
+### Description des données 
+
+- Inventaires forestiers nationaux réalisés entre 1994 et 1996 et répertoriant la présence ou l'absence de $483$ espèces végétales sur $751$ placettes d'inventaire.
+
+\pause 
+
+- Données climatiques et environnementales  disponibles sur le site \url{https://madaclim.cirad.fr}, on choisit d'utiliser $5$ variables pour lesquelles on extrait les valeurs correspondant aux coordonnées des placettes d'inventaire. 
+
+  - Les températures (`temp`) moyennes annuelles qui sont exprimées en $^\circ C\times 10$.
+  
+  -  Les précipitations (`prec`) moyennes annuelles exprimées en millimètres.
+  
+  - La saisonnalité des températures (`sais_temp`) qui correspond à l'écart type des températures mensuelles multiplié par $100$.
+  
+  - La saisonnalité des précipitations (`sais_prec`) sous la forme d'un coefficient de variation.
+  
+  - Le déficit hydrique climatique (`cwd`) annuel exprimé en millimètres.
+
+\pause 
+
+### Description des données 
+
+On extrait les valeurs de ces variables climatiques sur les placettes d'inventaires, on considère leur carrés afin d'effectuer un régression quadratique et on centre et réduit ce jeu de données.
+
+ \pause
+ 
+- Données climatiques future pour la période des années 2080, avec les scénarios d'émission de CO2 RCP 8.5 selon trois modèles climatiques globaux (GISS-E2-R, HadGEM2-ES et NorESM1-M), obtenues à partir du portail de données climatiques du [CGIAR CCAFS](http://www.ccafs-climate.org/data/) et qui sont disponibles sur \url{https://madaclim.cirad.fr/future-climate/}. 
+
+  - Données climatiques futures centrées et réduites en utilisant la moyenne et l'écart type des données présentes qui ont servi à ajuster le JSDM. 
+
+  - On utilisera les moyennes des probabilités de présence prédites à partir des données climatiques future obtenues avec les trois modèles climatiques globaux dans la suite. 
+
+
+\vspace{0.2cm}
+
+### Ajustement d'un JSDM à partir de ces données
+\vspace{0.3cm}
+
+#### Ajustement du modèle et nombre de paramètres à estimer  
+
+\vspace{0.4cm}
+On ajuste un JSDM de fonction de lien probit comportant un effet site aléatoire à l'aide de la fonction `jSDM_binomal_probit` du package `jSDM`.  
+\vspace{0.4cm}
+\begin{center}
+```{r results-mada, eval=TRUE, echo=FALSE, include=TRUE, out.width=600}
+load("~/Documents/projet_BioSceneMada/Report/Internship_Report/data/mada_mod.RData")
+nsp<-ncol(mod_all$model_spec$presence_data)
+nplot<-nrow(mod_all$model_spec$presence_data)
+p <- ncol(mod_all$model_spec$beta_start)
+nl <- mod_all$model_spec$n_latent
+T_all <- as.numeric(T_all,units="hours")
+results <- data.frame(nplot, nsp, nl, p, n_param=(p+1)*nsp+nl*nsp-1+nl*nplot+nplot+1, ngibbs="80000","Time"= T_all, dev=mean(mod_all$mcmc.Deviance))
+colnames(results)<- c("n.sites", "n.species", "n.latent", "n.X.coefs", "n.param" , "n.mcmc","Temps de calcul (heures)", "Déviance")
+knitr::kable(results, row.names=F, digits=1,booktabs=TRUE, align = 'c') %>%
+		kableExtra::kable_styling(latex_options=c("HOLD_position","striped","scale_down"), full_width=FALSE)
+```
+\end{center}
+
+### Corrélation résiduelle entre les espèces estimée 
+
+La matrice des corrélation résiduelle $R=(R_{ij})^{i=1,\ldots, J}_{j=1,\ldots, J}$ calculée de la même manière que dans l'article @Warton2015 : 
+ $$\Sigma_{ij} = \begin{cases}
+ \lambda_i .\lambda_j^T & \text{ if } i \neq j \\
+  \lambda_i .\lambda_j^T & \text{ if } i=j
+ \end{cases}$$, on calcule ensuite les corrélation à partir des covariances :
+  $$R_{i,j} = \frac{\Sigma_{ij}}{\sqrt{\Sigma _{ii}\Sigma _{jj}}}$$.
+
+### Corrélation résiduelle entre les espèces estimée 
+
+\begin{center}
+\includegraphics[width=0.47\textwidth, height=0.65\textwidth]{figs/figure-html/plot-associations-1.png"}
+\includegraphics[width=0.47\textwidth, height=0.65\textwidth]{figs/figure-html/plot-associations-2.png"}
+\end{center}
+
+### Richesse spécifique estimée comparée à celle observée
+
+\bcols
+\vspace{0.2cm}
+\bcol{0.44\textwidth}
+Richesse spécifique observée pour chaque site : $R_i=\sum\limits_ {j=1}^{J} y_{ij}$.   
+\begin{center}
+\includegraphics[width=1.0\textwidth,height=0.6\textheight]{figs/figure-html/species-richness-representation-2.png}
+\end{center}
+\ecol
+\bcol{0.15\textwidth} 
+\includegraphics[width=1.2\textwidth,height=0.4\textheight]{figs/figure-html/species-richness-representation-3.png}
+\ecol
+\bcol{0.44\textwidth} 
+\noindent Richesse spécifique estimée pour chaque site par $\widehat{R_i}=\sum\limits_ {j=1}^{J} \widehat{\theta_{ij}}$.    
+\begin{center}
+\includegraphics[width=1.0\textwidth, height=0.6\textheight]{figs/figure-html/species-richness-representation-1.png}
+\end{center}
+\ecol
+\ecols
+
+### Interpolation spatiale des paramètres associés aux sites d'inventaire 
+#### Méthodes d'interpolation utilisées  
+
+\begin{itemize}
+\item \textbf{IDW} : méthode déterministe de pondération par distance inverse.
+\vspace{0.2cm}
+\item \textbf{TPS} : thin plate spline qui ajuste une fonction thin plate spline à partir des coordonnées et des valeurs des points connus afin d'interpoler les valeurs non observées en fonction de leurs positions.
+\vspace{0.2cm}
+\item \textbf{OK} : krigeage ordinaire considère les valeurs des sites inconnus comme une combinaison linéaire des valeurs connues estimée en minimisant la variance de l'erreur d'estimation théorique qui dépend des coefficients ainsi que du du variogramme expérimental choisi. 
+\vspace{0.2cm}
+\pause
+\item \textbf{RST} : Regularized Spline with Tension du logiciel \href{GRASS GIS}{https://grass.osgeo.org/} via le package R \texttt{rgrass7}, méthode décrite dans l'article Mitášová and Hofierka (1993).
+\end{itemize}
+
+### 
+#### Modification des valeurs estimées sur les sites d'inventaires
+
+\begin{center}
+\includegraphics[width=0.49\textwidth,height=0.49\textheight]{figs/figure-html/RST-W1-2.png}
+\includegraphics[width=0.49\textwidth,height=0.49\textheight]{figs/figure-html/RST-W2-2.png}
+\includegraphics[width=0.49\textwidth,height=0.49\textheight]{figs/figure-html/RST_alpha-2.png}
+\includegraphics[width=0.49\textwidth,height=0.49\textheight]{figs/figure-html/RST_theta.png}
+\end{center}
+
+
+### Evolution de la richesse spécifique à Madagascar
+\vspace{0.1cm}
+#### Richesse spécifique actuelle et future estimées 
+\vspace{0.1cm}
+Reflète le nombre d'espèces coexistant dans un milieu donné, on l'estime en additionnant les probabilités de présence estimées.
+\vspace{0.1cm}
+\begin{center}
+\includegraphics[width=0.7\textwidth,height=0.7\textheight]{figs/figure-html/plot-species-richness-1.png}
+\end{center}
+
+###
+#### Richesse spécifique restreinte au couvert forestier en 2000 
+\vspace{0.1cm}
+Le couvert forestier est issu de l'article @Vieilledent2018.
+\vspace{0.1cm}
+\begin{center}
+\includegraphics[width=0.7\textwidth,height=0.7\textheight]{figs/figure-html/plot-species-richness-deforest-2.png}
+\end{center}
+
+### Evolution de la diversité $\beta$ à Madagascar
+
+#### Méthode 
+
+Comparaison de la diversité des espèces entre écosystèmes ou le long de gradients environnementaux, en utilisant le nombre de taxons qui sont uniques à chacun des écosystèmes.  
+
+\pause 
+
+Pour estimer cet indicateur, on procède de la même façon que dans l'article @Allnutt2008 :
+\begin{itemize}
+\item ACP normée sur les probabilités de présence des espèces interpolées pour chaque pixel de l'image affichée.
+\vspace{0.1cm}
+\item Coordonnées obtenues pour les trois premiers axes de l'ACP mises à l'échelle $[0,255]$ afin d'être représentables par des niveaux de couleur \textcolor{red}{rouge} pour le premier axe, \textcolor{green}{verte} pour le deuxième et \textcolor{blue}{bleue} pour le troisième.
+\vspace{0.1cm}
+\item Association de ces trois niveaux de couleur détermine la coloration de chaque pixel des cartes de diversité $\beta$ affichées.
+\end{itemize}
+
+###
+#### Diversité $\beta$ actuelle et future estimées 
+
+\vspace{0.1cm}
+Une différence de couleur entre deux pixels indique que les espèces présentes ne sont pas les mêmes tandis que des pixels de couleur identiques hébergent des communautés d'espèces similaires. 
+
+\vspace{0.1cm}
+\begin{center}
+\includegraphics[width=0.7\textwidth,height=0.7\textheight]{figs/figure-html/plot-diversity-beta-1.png}
+\end{center}
+
+###
+#### Diversité $\beta$  restreinte au couvert forestier en 2000 
+
+\vspace{0.1cm}
+\begin{center}
+\includegraphics[width=0.7\textwidth,height=0.7\textheight]{figs/figure-html/plot-diversity-beta-2.png}
+\end{center}
+\vspace{0.2cm}
+
+Ces cartes de biodiversité $\alpha$ et $\beta$ illustrent la méthode mise en oeuvre pour les obtenir mais elle ne sont pas cohérentes car elles sont basées sur les résultats de l'interpolation par RST qui nécessite d'être améliorée.
+
+## Obtention de cartes de communauté en Guyane française 
+
+### Obtention de cartes de communauté en Guyane française 
+
+#### Données utilisées 
+
+- Inventaires forestiers 
+\vspace{0.2cm}
+
+- Données climatiques présentes et futures
+\vspace{0.2cm}
+
+\pause 
+
+- Bases de données de traits fonctionnels uniques dont dispose la communauté scientifique du CEBA :
+\vspace{0.2cm}
+
+  - Traits fonctionnels classiques (H_max, WSD, SLA...) pas de lien évident avec la résistance à la sécheresse [@Marechaux2020].
+\vspace{0.2cm}
+  - Traits plus mécanistes et écophysiologique ($G_{min}$, $\Pi_{tlp}$,...) qui présentent un lien plus direct avec la résistance à la sécheresse [@Marechaux2018]. 
+\vspace{0.2cm}
+  - Mission de mesure de traits hydrauliques en forêt guyanaise dans le cadre du projet stratégique METRADICA pour apprendre la façon dont les données sont mesurées et organisées et pouvoir les analyser et les interpréter au mieux.
+
+###
+#### Enjeux 
+
+Ajuster un JSDM à partir de ces données pour prédire l’évolution des aires de distribution des espèces d'arbre en forêt amazonienne sous l’effet du changements climatique.  
+Les résultats obtenus pourraient :
+\vspace{0.2cm}
+
+- Montrer une certaine résilience la forêt amazonienne face au changement climatique avec :
+\vspace{0.2cm}
+  - Un changement des aires de répartition des espèces et donc de la composition de la forêt tropicale.
+\vspace{0.2cm}
+  - Conservation du couvert forestier et de la capacité des forêts à absorber et stocker le dioxyde de carbone (CO2).
+\pause
+\vspace{0.2cm}
+- Mettre en évidence la vulnérabilité de la forêt amazonienne face au changement climatiques avec 
+  \vspace{0.2cm}
+  - Une contraction généralisée des aires de répartition des espèces associée à un phénomène de mortalité en masse. 
+  \vspace{0.2cm}
+  - Amplification des bouleversements climatiques engendré par les effets de rétroaction sur le climat de l’effondrement des écosystèmes forestiers. 
+
+# Fonctionnalités en cours de développement du package `jSDM`
+
+## Estimation du nombre d'axes latents et amélioration de leur convergence
+
+### Problèmes de convergence des axes latents 
+
+Difficultés à estimer les axes latents ($W$) et les facteurs associés ($\Lambda$) liées aux contraintes imposées à la matrice $\Lambda$ : 
+
+#### Problème "symétrique" de convergence des facteurs et des axes latents : 
+
+- Traces et densités d'un $\lambda$ pour 4 chaînes MCMC ajustées sur un jeux de données simulé
+\vspace{0.2cm}
+  \begin{center}
+  \includegraphics[width=0.45\textwidth,height=0.6\textheight]{figs/figure-html/results-pres-9.png}
+  \includegraphics[width=0.45\textwidth,height=0.6\textheight]{figs/figure-html/results-pres-11.png}
+  \end{center}
+  
+###
+\vspace{0.2cm}
+#### Problème "symétrique" de convergence des facteurs et des axes latents : 
+\vspace{0.2cm}
+- Paramètres estimés en fonction des valeurs attendues
+\vspace{0.2cm}
+  \begin{center}
+    \includegraphics[width=0.45\textwidth,height=0.5\textheight]{figs/figure-html/obs-fitted-2.png}
+    \includegraphics[width=0.45\textwidth,height=0.5\textheight]{figs/figure-html/obs-fitted-3.png}
+  \end{center}
+\vspace{0.3cm}
+
+Inversion des signes d'une partie des facteurs et des variables latentes, ne fausse pas les prédictions mais rend plus difficile la convergence de l'algorithme. 
+
+###
+\vspace{0.2cm}
+#### Associés à des problèmes non symétriques pour les espèces "références" de l'axe latent : 
+\vspace{0.2cm}
+- Traces et densités d'un $\lambda$ sur la diagonale pour 4 chaînes MCMC ajustées sur un jeux de données simulé :
+\vspace{0.2cm}
+  \begin{center}
+\includegraphics[width=0.45\textwidth,height=0.3\textheight]{figs/figure-html/results-pres-6.png}
+  \end{center}
+\vspace{0.2cm}
+Ce facteur latent contraint à la positivité oscille autour de valeurs très proches de 0 sur l'une des chaîne MCMC ce qui peut signifier que l'espèce associée n'est pas la plus indiquée pour structurer les axes latents. 
+
+###
+\vspace{0.2cm}
+#### Méthodes pour améliorer la convergence et estimer le nombre d'axes latents 
+\vspace{0.3cm}
+
+- Évaluer la convergence des paramètres associés aux axes latents et diagnostiquer l'espèce qui se structure le plus clairement sur chaque axe, en déduire sur quelles espèces imposer les contraintes de positivité sur la diagonale et réordonner les espèces avant d'ajuster un nouveau JSDM.
+\vspace{0.3cm}
+
+- Ajouter une variable dans le modèle hiérarchique Bayésien qui va estimer le nombre d'axes latents à considérer plutôt que de le fixer arbitrairement comme on le faisait jusqu'à maintenant.
+\vspace{0.3cm}
+
+- Modifier les contraintes imposées aux facteurs latents en s'inspirant de l'article @Peeters2012. 
+
+## Intégrer la phylogénie des espèces comme variable explicative des modèle
+
+### Intégrer la phylogénie des espèces comme variable explicative des modèles
+
+D'après l'article @Ovaskainen2017, pour tenir compte des relations phylogénétiques (résumées par la
+matrice C), on peut définir la distribution *a priori* normale multivariée des effets espèces $\beta$ de la façon suivante :
+
+$$\beta \sim \mathcal{N}\left(\mu, V \otimes \left[ \rho C + (1-\rho)I\right]\right)$$
+
+- Produit de Kronecker : $\otimes$.
+
+- Force du signal phylogénétique :$0 \leq \rho \leq 1$ tel que 
+  - si $\rho=0$, la variance résiduelle est indépendante entre les espèces et les espèces étroitement liées n'ont pas des niches environnementales plus similaires que les espèces éloignées.
+  - si $\rho= 1$, les niches environnementales des espèces sont entièrement structurées par leur phylogénie et les espèces apparentées auront des niches plus similaires. 
+
+## Ajuster des JSDMs spatialement explicites
+### Ajuster des JSDMs spatialement explicites
+
+Deux méthodes explicitées dans les articles @Guelat2018 @Latimer2006 pour intégrer une auto-corrélation spatiale dans le modèle :
+
+- **Modèle CAR** :
+  - Mise en place d'une grille sur l'ensemble du territoire considéré. 
+  - Estimation des valeurs des effets sites et des variables latentes pour chacune des cellules en fonction de ceux estimés pour les cellules voisines.  
+  - Prendre en compte voisinages dans les distributions *a priori* des paramètres liés aux sites.
+  - Temps de calcul important et difficultés à converger car autant de paramètres à estimer que de cellules constituant la grille utilisée. \pause
+\vspace{0.2cm}
+- **Modèle 2D splines**
+  - Mise en place de noeuds répartis uniformément sur le territoire étudié.
+  - Redéfinir les effets sites par le produit d'une matrice calculée en fonction de la distance du site par rapport à ces noeuds et de paramètres à estimer qui sont aussi nombreux que les noeuds choisis.
+  - Intégrer les coordonnées des sites parmi les variables explicatives du modèle (deux paramètres supplémentaires à estimer).
+
+## Utiliser des données de présence seule
+\vspace{0.3cm}
+### Utiliser des données de présence seule 
+\vspace{0.3cm}
+Utilisation des données d’herbier ou de la base de donnée GBIF qui rassemble des milliers de jeux de données concernant de nombreuses espèces :
+\vspace{0.3cm}
+
+- Générer des pseudo-absences en suivant une méthode adaptée comme celle développée dans l'article @Barbet2012
+\vspace{0.3cm}
+
+- Utiliser les mêmes algorithmes que pour les données de présence-absence. 
+
+\vspace{0.3cm}
+Cependant, cette idée n'a pas encore été développée et s'avérera peut être difficile à mettre en oeuvre.
+
+### Références {.allowframebreaks}
